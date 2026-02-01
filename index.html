@@ -1,93 +1,203 @@
 <!DOCTYPE html>
-<html lang="fr" x-data="{ loading: true }" :class="{ 'dark': false }">
+<html lang="fr" x-data="shopApp()" :class="{ 'dark': darkMode }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ma Boutique Instagram-Style</title>
+    <title>Ma Boutique Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
-        /* Animation du Shimmer (balayage blanc sur les skeletons) */
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        .animate-shimmer {
-            position: relative;
-            overflow: hidden;
-        }
-        .animate-shimmer::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: shimmer 1.5s infinite;
-        }
-        /* Forme Squircle précise */
-        .squircle {
-            border-radius: 25%;
-        }
+        .squircle { border-radius: 28%; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
+        .dark .glass { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen transition-colors duration-300">
+<body class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen pb-20 transition-colors duration-300">
 
-    <!-- Interface principale -->
-    <div class="max-w-md mx-auto px-4 pt-8">
+    <!-- SKELETONS (Affiche pendant 1.5s pour l'effet) -->
+    <template x-if="loading">
+        <div class="max-w-md mx-auto px-4 pt-8">
+            <div class="flex flex-col items-center mb-10">
+                <div class="w-24 h-24 bg-zinc-200 dark:bg-zinc-800 squircle animate-pulse"></div>
+                <div class="h-6 w-32 bg-zinc-200 dark:bg-zinc-800 rounded mt-4 animate-pulse"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <template x-for="i in 6">
+                    <div class="aspect-square bg-zinc-200 dark:bg-zinc-800 rounded-2xl animate-pulse"></div>
+                </template>
+            </div>
+        </div>
+    </template>
+
+    <!-- SITE RÉEL -->
+    <div x-show="!loading" x-cloak class="max-w-md mx-auto px-4 pt-8">
         
         <!-- HEADER -->
-        <header class="flex flex-col items-center mb-8">
-            <!-- Container du Logo avec l'anneau Story -->
-            <div class="relative p-[3px] bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 squircle mb-4">
+        <header class="flex flex-col items-center mb-10 text-center">
+            <div class="relative p-[3px] bg-gradient-to-tr from-orange-400 via-pink-500 to-purple-600 squircle mb-4 shadow-lg">
                 <div class="bg-white dark:bg-zinc-950 p-[2px] squircle">
-                    <!-- SKELETON LOGO -->
-                    <template x-if="loading">
-                        <div class="w-24 h-24 bg-gray-200 dark:bg-zinc-800 squircle animate-shimmer"></div>
-                    </template>
-                    <!-- LOGO REEL -->
-                    <template x-if="!loading">
-                        <img src="https://via.placeholder.com/150" alt="Logo" class="w-24 h-24 squircle object-cover">
-                    </template>
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Shop" class="w-24 h-24 squircle object-cover">
                 </div>
             </div>
-
-            <!-- Infos Boutique -->
-            <div class="text-center w-full">
-                <template x-if="loading">
-                    <div class="flex flex-col items-center gap-2">
-                        <div class="h-6 w-32 bg-gray-200 dark:bg-zinc-800 rounded-md animate-shimmer"></div>
-                        <div class="h-4 w-48 bg-gray-200 dark:bg-zinc-800 rounded-md animate-shimmer mt-2"></div>
-                    </div>
-                </template>
-                
-                <template x-if="!loading">
-                    <div>
-                        <h1 class="text-xl font-bold tracking-tight">Nom de la Boutique</h1>
-                        <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1 px-4">
-                            Vente de vêtements haut de gamme 👗 | Livraison partout 🚀 | Contactez-nous sur WhatsApp
-                        </p>
-                    </div>
-                </template>
-            </div>
+            <h1 class="text-2xl font-black tracking-tight">LuxStore Paris</h1>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2 px-6">
+                Nouvelle collection disponible ✨ Livraison 24h 🚀
+            </p>
         </header>
 
-        <!-- GRILLE DE PRODUITS (SKELETONS) -->
-        <div class="grid grid-cols-2 gap-3" x-show="loading">
-            <template x-for="i in 6" :key="i">
-                <div class="aspect-square bg-gray-200 dark:bg-zinc-800 rounded-2xl animate-shimmer"></div>
+        <!-- GRILLE PRODUITS -->
+        <div class="grid grid-cols-2 gap-3">
+            <template x-for="product in displayProducts" :key="product.id">
+                <div @click="openProduct(product)" class="relative group cursor-pointer overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-900 shadow-sm active:scale-95 transition-transform">
+                    <!-- Image -->
+                    <img :src="product.images[0]" class="aspect-square object-cover w-full">
+                    
+                    <!-- Badge Epinglé -->
+                    <template x-if="product.pinned">
+                        <div class="absolute top-2 left-2 bg-white/90 dark:bg-black/80 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                            ⭐ Top
+                        </div>
+                    </template>
+
+                    <!-- Prix Glassmorphism -->
+                    <div class="absolute bottom-2 right-2 glass px-2 py-1 rounded-lg shadow-sm border border-white/20">
+                        <span class="text-xs font-bold" x-text="formatPrice(product.price)"></span>
+                    </div>
+                </div>
             </template>
         </div>
 
-        <!-- Bouton temporaire pour tester le chargement -->
-        <div class="fixed bottom-4 right-4">
-            <button @click="loading = !loading" class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black px-4 py-2 rounded-full text-xs font-bold shadow-lg">
-                Simuler chargement fini
+        <!-- MODALE PRODUIT (Slide up) -->
+        <div x-show="modalOpen" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="translate-y-full"
+             x-transition:enter-end="translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="translate-y-0"
+             x-transition:leave-end="translate-y-full"
+             class="fixed inset-0 z-50 overflow-y-auto bg-white dark:bg-zinc-950"
+             x-cloak>
+            
+            <!-- Bouton Fermer -->
+            <button @click="modalOpen = false" class="absolute top-4 right-4 z-10 p-2 bg-black/10 dark:bg-white/10 rounded-full backdrop-blur-md">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
-        </div>
 
+            <div class="pb-32">
+                <!-- Carousel Multi-angle -->
+                <div class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar bg-zinc-100 dark:bg-zinc-900">
+                    <template x-for="img in selectedProduct?.images">
+                        <img :src="img" class="w-full aspect-square object-cover snap-center">
+                    </template>
+                </div>
+                
+                <!-- Détails -->
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-2xl font-bold" x-text="selectedProduct?.name"></h2>
+                        <div class="text-right">
+                            <div class="text-2xl font-black text-green-600" x-text="formatPrice(selectedProduct?.price)"></div>
+                            <template x-if="selectedProduct?.oldPrice">
+                                <div class="text-sm line-through text-zinc-400" x-text="formatPrice(selectedProduct?.oldPrice)"></div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <p class="text-zinc-600 dark:text-zinc-400 mb-6" x-text="selectedProduct?.description"></p>
+
+                    <!-- Tailles -->
+                    <div class="mb-6">
+                        <span class="text-xs font-bold uppercase text-zinc-400">Taille disponible</span>
+                        <div class="flex gap-2 mt-2">
+                            <template x-for="t in selectedProduct?.sizes">
+                                <button @click="selectedSize = t" 
+                                        :class="selectedSize === t ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black' : 'bg-zinc-100 dark:bg-zinc-800'"
+                                        class="px-4 py-2 rounded-xl text-sm font-medium transition-all" x-text="t"></button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Couleurs -->
+                    <div class="mb-6">
+                        <span class="text-xs font-bold uppercase text-zinc-400">Couleur</span>
+                        <div class="flex gap-2 mt-2">
+                            <template x-for="c in selectedProduct?.colors">
+                                <button @click="selectedColor = c" 
+                                        :class="selectedColor === c ? 'ring-2 ring-zinc-900 dark:ring-zinc-100 border-2 border-white' : ''"
+                                        class="w-8 h-8 rounded-full border border-black/10 shadow-inner" :style="`background-color: ${c}`"></button>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bouton WhatsApp Fixe -->
+            <div class="fixed bottom-0 left-0 w-full p-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg border-t border-zinc-100 dark:border-zinc-800">
+                <button @click="sendWhatsApp()" class="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
+                    <span>Commander sur WhatsApp</span>
+                </button>
+            </div>
+        </div>
     </div>
 
+    <script>
+        function shopApp() {
+            return {
+                loading: true,
+                darkMode: false,
+                modalOpen: false,
+                selectedProduct: null,
+                selectedSize: null,
+                selectedColor: null,
+                products: [
+                    { id: 1, name: 'Air Jordan 1 Low', price: 85000, oldPrice: 110000, pinned: true, description: 'Le classique indémodable, parfait pour un style urbain.', sizes: ['40', '42', '44'], colors: ['black', 'red', 'white'], images: ['https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=500', 'https://images.unsplash.com/photo-1584735175315-9d58238a06cf?auto=format&fit=crop&w=500'] },
+                    { id: 2, name: 'Sac à main Luxe', price: 45000, pinned: false, description: 'Cuir véritable, finition dorée.', sizes: ['Unique'], colors: ['brown', 'black'], images: ['https://images.unsplash.com/photo-1584917033904-493bb3c3af15?auto=format&fit=crop&w=500'] },
+                    { id: 3, name: 'Veste Bomber', price: 35000, oldPrice: 40000, pinned: true, description: 'Confortable et léger.', sizes: ['M', 'L', 'XL'], colors: ['#1a2e1a', 'black'], images: ['https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=500'] },
+                    { id: 4, name: 'Montre Quartz', price: 12000, pinned: false, description: 'Précision et élégance.', sizes: ['Ajustable'], colors: ['gold', 'silver'], images: ['https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=500'] },
+                ],
+                displayProducts: [],
+
+                init() {
+                    // Simulation du chargement
+                    setTimeout(() => {
+                        this.shuffleProducts();
+                        this.loading = false;
+                    }, 1500);
+
+                    // Check mode sombre
+                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
+                },
+
+                shuffleProducts() {
+                    let pinned = this.products.filter(p => p.pinned);
+                    let others = this.products.filter(p => !p.pinned);
+                    // Mélange aléatoire des autres
+                    others.sort(() => Math.random() - 0.5);
+                    this.displayProducts = [...pinned, ...others];
+                },
+
+                openProduct(product) {
+                    this.selectedProduct = product;
+                    this.selectedSize = product.sizes[0];
+                    this.selectedColor = product.colors[0];
+                    this.modalOpen = true;
+                },
+
+                formatPrice(price) {
+                    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(price);
+                },
+
+                sendWhatsApp() {
+                    const phone = "2250102030405"; // Ton numéro WhatsApp
+                    const message = `Bonjour LuxStore, je souhaite commander :\n\n🛍️ *${this.selectedProduct.name}*\n💰 Prix : ${this.formatPrice(this.selectedProduct.price)}\n📏 Taille : ${this.selectedSize}\n🎨 Couleur : ${this.selectedColor}\n\nLien : ${window.location.href}`;
+                    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+                    window.open(url, '_blank');
+                }
+            }
+        }
+    </script>
 </body>
 </html>
