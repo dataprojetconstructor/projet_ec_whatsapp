@@ -186,52 +186,99 @@
             </button>
         </div>
     </div>
+ <script>
+    // CONFIGURATION SUPABASE
+const SUPABASE_URL = "TA_URL_SUPABASE";
+const SUPABASE_KEY = "TA_CLE_ANON_SUPABASE";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    <script>
-        function shopApp() {
-            return {
-                loading: true, darkMode: false, modalOpen: false, selectedProduct: null, activeImage: '', selectedSize: null,
-                products: [
-                    { id: 1, name: 'Jordan 1 Retro High', price: 95000, oldPrice: 125000, pinned: true, description: 'Le summum du style urbain. Cuir premium et confort inégalé.', sizes: ['40', '42', '44'], images: ['https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=600', 'https://images.unsplash.com/photo-1584735175315-9d58238a06cf?q=80&w=600', 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=600'] },
-                    { id: 2, name: 'Sac de Luxe "Glace"', price: 65000, pinned: false, description: 'Un accessoire chic pour vos soirées spéciales.', sizes: ['Unique'], images: ['https://images.unsplash.com/photo-1584917033904-493bb3c3af15?q=80&w=600', 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=600'] },
-                    { id: 3, name: 'Veste Bomber Noire', price: 45000, oldPrice: 55000, pinned: true, description: 'Légère et élégante, cette veste s\'adapte à toutes les saisons.', sizes: ['M', 'L', 'XL'], images: ['https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=600', 'https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=600'] },
-                    { id: 4, name: 'Montre Chrono Silver', price: 35000, pinned: false, description: 'Précision et robustesse pour l\'homme moderne.', sizes: ['Ajustable'], images: ['https://images.unsplash.com/photo-1524592094714-0f0654e20314?q=80&w=600', 'https://images.unsplash.com/photo-1522312346375-d1ad5051639f?q=80&w=600'] }
-                ],
-                displayProducts: [],
+// ID DE LA BOUTIQUE (À récupérer dynamiquement ou à fixer pour ce marchand)
+// Pour tester, utilise l'ID qui s'affiche dans ton dashboard Supabase (table boutiques)
+const SHOP_ID = "ID_DU_MARCHAND_ICI"; 
 
-                init() {
-                    setTimeout(() => {
-                        this.prepareDisplay();
-                        this.loading = false;
-                    }, 1800);
-                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
-                },
+function shopApp() {
+    return {
+        loading: true,
+        darkMode: false,
+        modalOpen: false,
+        selectedProduct: null,
+        activeImage: '',
+        selectedSize: null,
+        displayProducts: [],
+        shopInfo: {},
 
-                prepareDisplay() {
-                    let pinned = this.products.filter(p => p.pinned);
-                    let others = this.products.filter(p => !p.pinned);
-                    others.sort(() => Math.random() - 0.5);
+        async init() {
+            // 1. Détecter le mode sombre
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
+
+            // 2. Charger les données de la boutique et les produits
+            await this.loadShopData();
+            
+            // 3. Enregistrer la visite (Statistiques)
+            this.trackAction('vue');
+
+            this.loading = false;
+        },
+
+        async loadShopData() {
+            try {
+                // Récupérer infos boutique
+                const { data: shop } = await supabase.from('boutiques').select('*').eq('id', SHOP_ID).single();
+                this.shopInfo = shop || {};
+
+                // Récupérer produits
+                const { data: prods } = await supabase.from('produits').select('*').eq('boutique_id', SHOP_ID);
+                
+                if (prods) {
+                    let pinned = prods.filter(p => p.is_pinned);
+                    let others = prods.filter(p => !p.is_pinned);
+                    others.sort(() => Math.random() - 0.5); // Mélange aléatoire
                     this.displayProducts = [...pinned, ...others];
-                },
-
-                openProduct(product) {
-                    this.selectedProduct = product;
-                    this.activeImage = product.images[0];
-                    this.selectedSize = product.sizes[0];
-                    this.modalOpen = true;
-                },
-
-                formatPrice(price) {
-                    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(price);
-                },
-
-                sendWhatsApp() {
-                    const phoneNumber = "2250102030405";
-                    const message = `Bonjour LuxStore, je souhaite commander :\n\n🛍️ *${this.selectedProduct.name}*\n💰 Prix : ${this.formatPrice(this.selectedProduct.price)}\n📏 Taille : ${this.selectedSize}\n\nLien : ${window.location.href}`;
-                    window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
                 }
+            } catch (error) {
+                console.error("Erreur de chargement:", error);
             }
+        },
+
+        // FONCTION DE SUIVI (PROVENANCE)
+        async trackAction(type, productId = null) {
+            const referrer = document.referrer;
+            let source = 'direct';
+            
+            if (referrer.includes('facebook.com')) source = 'facebook';
+            else if (referrer.includes('instagram.com')) source = 'instagram';
+            else if (referrer.includes('wa.me') || referrer.includes('whatsapp')) source = 'whatsapp';
+
+            await supabase.from('statistiques').insert([{
+                boutique_id: SHOP_ID,
+                produit_id: productId,
+                action_type: type,
+                source: source
+            }]);
+        },
+
+        openProduct(product) {
+            this.selectedProduct = product;
+            this.activeImage = product.images[0];
+            this.selectedSize = product.tailles[0];
+            this.modalOpen = true;
+        },
+
+        async sendWhatsApp() {
+            // Enregistrer le clic dans les stats avant de partir sur WA
+            await this.trackAction('clic_wa', this.selectedProduct.id);
+
+            const phone = this.shopInfo.whatsapp_number;
+            const text = `Bonjour ${this.shopInfo.nom_boutique}, je souhaite commander :\n\n🛍️ *${this.selectedProduct.nom}*\n💰 Prix : ${this.formatPrice(this.selectedProduct.prix)}\n📏 Taille : ${this.selectedSize}\n\nLien : ${window.location.href}`;
+            
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+        },
+
+        formatPrice(price) {
+            return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(price);
         }
-    </script>
+    }
+}
+                </script>
 </body>
 </html>
