@@ -79,11 +79,17 @@
                     try {
                         if (this.mode === 'register') {
                             // Sécurité : Vérification locale
+                            const email = this.form.email.trim();
+                            const shopName = this.form.shopName.trim();
+                            const phone = this.form.phone.trim().replace(/\s+/g, '');
+
+                            if (!shopName) throw new Error("NOM DE BOUTIQUE OBLIGATOIRE");
+                            if (!phone) throw new Error("NUMÉRO WHATSAPP OBLIGATOIRE");
                             if (this.form.password.length < 6) throw new Error("MOT DE PASSE TROP COURT (MIN 6)");
 
                             // 1. Création du compte utilisateur
                             const { data, error } = await this.sb.auth.signUp({
-                                email: this.form.email,
+                                email,
                                 password: this.form.password,
                             });
                             if (error) throw error;
@@ -95,8 +101,8 @@
 
                                 const { error: shopError } = await this.sb.from('boutiques').insert([{
                                     id: data.user.id,
-                                    nom_boutique: this.form.shopName.toUpperCase(),
-                                    whatsapp_number: this.form.phone,
+                                    nom_boutique: shopName.toUpperCase(),
+                                    whatsapp_number: phone,
                                     bio: 'BOUTIQUE PREMIUM • CATALOGUE OFFICIEL'
                                 }]);
                                 
@@ -106,9 +112,10 @@
                             this.msg = "BOUTIQUE CRÉÉE ! CONNECTEZ-VOUS.";
                             this.mode = 'login';
                         } else {
+                            const email = this.form.email.trim();
                             // Connexion sécurisée
                             const { error } = await this.sb.auth.signInWithPassword({
-                                email: this.form.email,
+                                email,
                                 password: this.form.password,
                             });
                             if (error) throw error;
@@ -153,11 +160,11 @@
                 <div class="space-y-4 animate-in slide-in-from-bottom duration-500">
                     <div>
                         <label class="text-[9px] font-black text-neutral-500 uppercase tracking-widest ml-4 mb-2 block">Nom Boutique</label>
-                        <input type="text" x-model="form.shopName" placeholder="EX: LUXSTORE PARIS" class="w-full admin-input rounded-2xl px-6 py-4 text-[11px] font-black tracking-widest uppercase">
+                        <input type="text" x-model="form.shopName" placeholder="EX: LUXSTORE PARIS" required class="w-full admin-input rounded-2xl px-6 py-4 text-[11px] font-black tracking-widest uppercase">
                     </div>
                     <div>
                         <label class="text-[9px] font-black text-neutral-500 uppercase tracking-widest ml-4 mb-2 block">WhatsApp</label>
-                        <input type="tel" x-model="form.phone" placeholder="EX: 22500000000" class="w-full admin-input rounded-2xl px-6 py-4 text-[11px] font-black tracking-widest uppercase">
+                        <input type="tel" x-model="form.phone" placeholder="EX: 22500000000" required class="w-full admin-input rounded-2xl px-6 py-4 text-[11px] font-black tracking-widest uppercase">
                     </div>
                 </div>
             </template>
