@@ -3,118 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boutique Officielle</title>
-    <!-- 1. CHARGEMENT DES BIBLIOTHÈQUES -->
+    <title>Connexion Marchand | Administration</title>
+    <!-- 1. BIBLIOTHÈQUES -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Alpine.js doit être chargé APRÈS notre script de données ou avec defer -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
     <style>
         [x-cloak] { display: none !important; }
         .squircle { border-radius: 28%; }
-        .sticky-header { backdrop-filter: blur(12px); background-color: rgba(255, 255, 255, 0.85); }
-        .dark .sticky-header { background-color: rgba(9, 9, 11, 0.85); }
     </style>
 </head>
-<body x-data="shopApp()" class="bg-gray-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen">
+<body x-data="authApp()" class="bg-gray-50 flex items-center justify-center min-h-screen p-6 font-sans">
 
-    <!-- ÉCRAN DE CHARGEMENT -->
-    <div x-show="loading" class="fixed inset-0 flex items-center justify-center bg-white dark:bg-zinc-950 z-[100]">
-        <div class="flex flex-col items-center">
-            <div class="w-12 h-12 border-4 border-zinc-200 border-t-orange-500 rounded-full animate-spin"></div>
-            <p class="mt-4 text-xs font-bold text-zinc-400">Chargement...</p>
-        </div>
-    </div>
-
-    <!-- BOUTIQUE INTROUVABLE -->
-    <div x-show="!loading && !shopInfo.id" x-cloak class="max-w-md mx-auto h-screen flex flex-col items-center justify-center p-10 text-center">
-        <h1 class="text-xl font-black">Boutique introuvable</h1>
-        <p class="text-sm text-zinc-500 mt-2">Vérifiez le lien (ID manquant dans l'URL).</p>
-        <a href="login.html" class="mt-8 bg-black text-white px-8 py-3 rounded-2xl font-bold text-sm">Espace Marchand</a>
-    </div>
-
-    <!-- VITRINE RÉELLE -->
-    <div x-show="!loading && shopInfo.id" x-cloak>
-        <div class="sticky top-0 z-40 sticky-header border-b border-zinc-200/50 dark:border-zinc-800/50">
-            <header class="max-w-md mx-auto flex flex-col items-center py-6 text-center">
-                <div class="relative p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 squircle mb-3 shadow-lg">
-                    <div class="bg-white dark:bg-zinc-950 p-[2px] squircle">
-                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover bg-zinc-100">
-                    </div>
-                </div>
-                <h1 class="text-xl font-black tracking-tight" x-text="shopInfo.nom_boutique"></h1>
-                <p class="text-[11px] text-zinc-500 mt-1 px-10" x-text="shopInfo.bio"></p>
-            </header>
-        </div>
-
-        <main class="max-w-md mx-auto px-4 pt-6 pb-20 text-center">
-            <div class="grid grid-cols-2 gap-3">
-                <template x-for="product in displayProducts" :key="product.id">
-                    <div class="relative rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-800">
-                        <img :src="product.images[0]" class="aspect-square object-cover w-full">
-                        <div class="p-2">
-                            <p class="text-[10px] font-bold" x-text="formatPrice(product.prix)"></p>
-                        </div>
-                    </div>
-                </template>
+    <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-zinc-100">
+        <!-- HEADER -->
+        <div class="text-center mb-10">
+            <div class="w-16 h-16 bg-zinc-900 squircle flex items-center justify-center mb-4 mx-auto shadow-lg text-white font-bold text-xl">
+                <span x-text="mode === 'login' ? 'L' : 'R'"></span>
             </div>
-        </main>
+            <h1 class="text-2xl font-black tracking-tight" x-text="mode === 'login' ? 'Bienvenue' : 'Inscription'"></h1>
+            <p class="text-sm text-zinc-400 mt-2" x-text="mode === 'login' ? 'Gérez votre boutique' : 'Créez votre boutique en 2 minutes'"></p>
+        </div>
+        
+        <!-- FORMULAIRE -->
+        <form @submit.prevent="handleAuth" class="space-y-4">
+            <!-- Champs spécifiques Inscription -->
+            <div x-show="mode === 'register'" x-cloak class="space-y-4 mb-4">
+                <input type="text" x-model="form.shopName" placeholder="Nom de la boutique" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-900 transition-all">
+                <input type="tel" x-model="form.phone" placeholder="WhatsApp (ex: 225...)" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-900 transition-all">
+            </div>
+
+            <input type="email" x-model="form.email" placeholder="Email" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-900 transition-all" required>
+            <input type="password" x-model="form.password" placeholder="Mot de passe" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-900 transition-all" required>
+            
+            <!-- Message d'erreur -->
+            <div x-show="msg" x-cloak x-text="msg" class="text-xs text-red-500 bg-red-50 p-3 rounded-xl font-bold text-center"></div>
+            
+            <button type="submit" :disabled="loading" class="w-full bg-zinc-900 text-white py-5 rounded-2xl font-bold text-lg active:scale-95 transition-all shadow-xl disabled:opacity-50">
+                <span x-show="!loading" x-text="mode === 'login' ? 'Se connecter' : 'C\'est parti !'"></span>
+                <span x-show="loading" x-cloak>Veuillez patienter...</span>
+            </button>
+        </form>
+
+        <!-- CHANGEMENT DE MODE -->
+        <button @click="mode = (mode === 'login' ? 'register' : 'login'); msg = ''" class="w-full mt-8 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">
+            <span x-text="mode === 'login' ? 'Pas encore de compte ? S\'inscrire' : 'Déjà inscrit ? Se connecter'"></span>
+        </button>
     </div>
 
-    <!-- SCRIPT DE LOGIQUE -->
+    <!-- 2. LOGIQUE JAVASCRIPT -->
     <script>
-        // 1. Tes clés Supabase (À REMPLIR)
-        const S_URL = "https://VOTRE_PROJET.supabase.co";
-        const S_KEY = "VOTRE_CLE_ANON";
-
-        // 2. Initialisation du client (on change le nom en 'sb' pour éviter les erreurs)
+        // === REMPLACE BIEN CES DEUX LIGNES AVEC TES CLÉS ===
+        const S_URL = "TA_URL_SUPABASE"; 
+        const S_KEY = "TA_CLE_ANON_SUPABASE";
+        
+        // Initialisation du client (on utilise 'sb' pour éviter les conflits)
         const sb = supabase.createClient(S_URL, S_KEY);
 
-        function shopApp() {
+        function authApp() {
             return {
-                loading: true,
-                darkMode: false,
-                shopInfo: { id: null },
-                displayProducts: [],
+                mode: 'login', // 'login' ou 'register'
+                loading: false,
+                msg: '',
+                form: {
+                    email: '',
+                    password: '',
+                    shopName: '',
+                    phone: ''
+                },
 
-                async init() {
-                    console.log("Démarrage du script...");
-                    
-                    // Détection du mode sombre
-                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
-
-                    // Récupération de l'ID marchand dans l'URL (?id=...)
-                    const params = new URLSearchParams(window.location.search);
-                    const shopId = params.get('id');
-
-                    if (!shopId) {
-                        console.error("ID manquant dans l'URL");
-                        this.loading = false;
-                        return;
-                    }
+                async handleAuth() {
+                    this.loading = true;
+                    this.msg = '';
 
                     try {
-                        // Charger les infos de la boutique
-                        const { data: shop, error: shopErr } = await sb.from('boutiques').select('*').eq('id', shopId).single();
-                        
-                        if (shop) {
-                            this.shopInfo = shop;
-                            // Charger les produits
-                            const { data: prods } = await sb.from('produits').select('*').eq('boutique_id', shopId);
-                            this.displayProducts = prods || [];
+                        if (this.mode === 'register') {
+                            // 1. Inscription Auth
+                            const { data, error } = await sb.auth.signUp({
+                                email: this.form.email,
+                                password: this.form.password,
+                            });
+                            if (error) throw error;
+
+                            // 2. Création de la boutique dans la table
+                            if (data.user) {
+                                const { error: shopError } = await sb.from('boutiques').insert([{
+                                    id: data.user.id,
+                                    nom_boutique: this.form.shopName,
+                                    whatsapp_number: this.form.phone,
+                                    bio: 'Bienvenue dans ma boutique !'
+                                }]);
+                                if (shopError) throw shopError;
+                            }
+                            this.msg = "Compte créé ! Connectez-vous maintenant.";
+                            this.mode = 'login';
+
                         } else {
-                            console.warn("Boutique non trouvée dans la base de données");
+                            // Connexion
+                            const { error } = await sb.auth.signInWithPassword({
+                                email: this.form.email,
+                                password: this.form.password,
+                            });
+                            if (error) throw error;
+
+                            // Succès -> Vers le dashboard
+                            window.location.href = "dashboard.html";
                         }
-                    } catch (err) {
-                        console.error("Erreur technique:", err);
+                    } catch (e) {
+                        this.msg = "Erreur : " + e.message;
                     } finally {
                         this.loading = false;
                     }
-                },
-
-                formatPrice(p) {
-                    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p);
                 }
             }
         }
