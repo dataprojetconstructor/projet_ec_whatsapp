@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr" x-data="authApp()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration | LuxStore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .squircle { border-radius: 28%; }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 text-zinc-900 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white rounded-[2.5rem] shadow-xl p-8 border border-zinc-100">
+        
+        <!-- HEADER -->
+        <div class="flex flex-col items-center mb-10 text-center">
+            <div class="w-16 h-16 bg-zinc-900 squircle flex items-center justify-center mb-4 shadow-lg">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-black tracking-tight" x-text="mode === 'login' ? 'Bon retour !' : 'Créer ma boutique'"></h1>
+            <p class="text-sm text-zinc-500 mt-2" x-text="mode === 'login' ? 'Gérez vos produits et analysez vos ventes.' : 'Commencez à vendre sur WhatsApp en 2 minutes.'"></p>
+        </div>
+
+        <!-- FORMULAIRE -->
+        <form @submit.prevent="handleAuth" class="space-y-4">
+            
+            <!-- Champs spécifiques Inscription -->
+            <template x-if="mode === 'register'">
+                <div class="space-y-4 animate-in fade-in duration-500">
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-2">Nom de la boutique</label>
+                        <input type="text" x-model="formData.shopName" required class="w-full mt-1 bg-gray-50 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-zinc-900 transition-all outline-none" placeholder="Ex: LuxStore Paris">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-2">Numéro WhatsApp</label>
+                        <input type="tel" x-model="formData.phone" required class="w-full mt-1 bg-gray-50 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-zinc-900 transition-all outline-none" placeholder="Ex: 2250102030405">
+                    </div>
+                </div>
+            </template>
+
+            <!-- Champs Communs -->
+            <div>
+                <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-2">Email</label>
+                <input type="email" x-model="formData.email" required class="w-full mt-1 bg-gray-50 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-zinc-900 transition-all outline-none" placeholder="votre@email.com">
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-2">Mot de passe</label>
+                <input type="password" x-model="formData.password" required class="w-full mt-1 bg-gray-50 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-zinc-900 transition-all outline-none" placeholder="••••••••">
+            </div>
+
+            <!-- Message d'erreur -->
+            <div x-show="errorMessage" x-transition x-text="errorMessage" class="bg-red-50 text-red-600 text-xs p-4 rounded-2xl font-medium"></div>
+
+            <!-- Bouton Validation -->
+            <button type="submit" :disabled="loading" class="w-full bg-zinc-900 text-white py-5 rounded-2xl font-bold text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+                <template x-if="loading">
+                    <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                </template>
+                <span x-text="loading ? 'Veuillez patienter...' : (mode === 'login' ? 'Se connecter' : 'Lancer ma boutique')"></span>
+            </button>
+        </form>
+
+        <!-- SWITCH MODE -->
+        <div class="mt-8 text-center">
+            <button @click="mode = (mode === 'login' ? 'register' : 'login'); errorMessage = ''" class="text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">
+                <span x-text="mode === 'login' ? 'Pas encore de compte ? S\'inscrire' : 'Déjà un compte ? Se connecter'"></span>
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // CONFIGURATION SUPABASE (À REMPLACER)
+        const SUPABASE_URL = "TA_URL_SUPABASE"; 
+        const SUPABASE_KEY = "TA_CLE_ANON_SUPABASE";
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function authApp() {
+            return {
+                mode: 'login', // login ou register
+                loading: false,
+                errorMessage: '',
+                formData: {
+                    email: '',
+                    password: '',
+                    shopName: '',
+                    phone: ''
+                },
+
+                async handleAuth() {
+                    this.loading = true;
+                    this.errorMessage = '';
+
+                    try {
+                        if (this.mode === 'register') {
+                            // 1. Inscription Auth
+                            const { data, error } = await supabase.auth.signUp({
+                                email: this.formData.email,
+                                password: this.formData.password,
+                            });
+                            if (error) throw error;
+
+                            // 2. Création du profil boutique
+                            if (data.user) {
+                                const { error: shopError } = await supabase.from('boutiques').insert([{
+                                    id: data.user.id,
+                                    nom_boutique: this.formData.shopName,
+                                    whatsapp_number: this.formData.phone,
+                                    bio: "Bienvenue dans ma boutique !"
+                                }]);
+                                if (shopError) throw shopError;
+                            }
+                            alert("Boutique créée avec succès ! Connectez-vous maintenant.");
+                            this.mode = 'login';
+
+                        } else {
+                            // Connexion
+                            const { error } = await supabase.auth.signInWithPassword({
+                                email: this.formData.email,
+                                password: this.formData.password,
+                            });
+                            if (error) throw error;
+
+                            // Redirection vers le dashboard (on créera dashboard.html bientôt)
+                            window.location.href = "dashboard.html";
+                        }
+                    } catch (err) {
+                        this.errorMessage = err.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
