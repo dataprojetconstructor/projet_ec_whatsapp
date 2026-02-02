@@ -108,6 +108,40 @@
         </div>
         <div class="p-6 bg-black/90 pb-10"><button @click="sendWhatsApp()" class="w-full bg-[#25D366] text-white py-5 rounded-[2.5rem] font-black text-lg uppercase">Commander</button></div>
     </div>
+    <!-- FOOTER NOIR ÉCLAIRÉ -->
+<footer class="mt-20 border-t border-white/5 pt-16 pb-12 text-center bg-black">
+    
+    <!-- Social Icons (Discrets) -->
+    <div class="flex justify-center gap-8 mb-12">
+        <a href="#" class="text-neutral-700 hover:text-white transition-all duration-500 hover:scale-110">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.266.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c.796 0 1.441.645 1.441 1.44s-.645 1.44-1.441 1.44c-.795 0-1.439-.645-1.439-1.44s.644-1.44 1.439-1.44z"/></svg>
+        </a>
+        <a href="#" class="text-neutral-700 hover:text-white transition-all duration-500 hover:scale-110">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.481 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.306 1.656zm6.29-4.463c1.589.941 3.277 1.438 5.002 1.439 5.305 0 9.622-4.317 9.625-9.623.002-2.571-1.002-4.986-2.826-6.81-1.825-1.825-4.237-2.83-6.809-2.831-5.306 0-9.623 4.317-9.626 9.625 0 1.769.463 3.493 1.339 5.011l-.872 3.186 3.257-.854-.09.054z"/></svg>
+        </a>
+    </div>
+
+    <!-- Branding & Info -->
+    <div class="space-y-6">
+        <p class="text-[10px] font-black uppercase tracking-[0.5em] text-white" x-text="shopInfo.nom_boutique + ' • CATALOGUE'"></p>
+        <p class="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-600 px-12 leading-relaxed">
+            Qualité Premium Garantie • Livraison Express • Support WhatsApp 24/7
+        </p>
+    </div>
+
+    <!-- Copyright & Admin Access -->
+    <div class="mt-16 pt-10 border-t border-white/[0.02]">
+        <p class="text-[7px] font-bold uppercase tracking-[0.6em] text-neutral-800">© 2024 TOUS DROITS RÉSERVÉS</p>
+        
+        <!-- Bouton Admin Discret -->
+        <a href="login.html" class="inline-block mt-8 opacity-10 hover:opacity-100 transition-opacity duration-700">
+            <div class="flex items-center gap-2 px-5 py-2 border border-white/10 rounded-full bg-white/[0.02]">
+                <svg class="w-2.5 h-2.5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <span class="text-[7px] font-black uppercase tracking-[0.2em] text-neutral-400">Merchant Access</span>
+            </div>
+        </a>
+    </div>
+</footer>
 
     <script>
         function shopApp() {
