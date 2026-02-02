@@ -5,44 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Boutique Officielle | Catalogue</title>
 
-    <!-- 1. CHARGEMENT DES BIBLIOTHÈQUES (ORDRE CRITIQUE) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         [x-cloak] { display: none !important; }
+        /* Squircle Premium */
         .squircle { border-radius: 28%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Animation Shimmer (Skeletons) */
+        /* Animation Shimmer Pro */
         @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-        .animate-shimmer { position: relative; overflow: hidden; background-color: #f4f4f5; }
-        .dark .animate-shimmer { background-color: #27272a; }
-        .animate-shimmer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shimmer 1.5s infinite; }
+        .animate-shimmer { position: relative; overflow: hidden; background-color: #f5f5f5; }
+        .dark .animate-shimmer { background-color: #171717; }
+        .animate-shimmer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shimmer 1.5s infinite; }
 
-        /* Header Fixe avec Flou */
-        .sticky-header { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background-color: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(0,0,0,0.05); }
-        .dark .sticky-header { background-color: rgba(9, 9, 11, 0.8); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); }
+        /* Header Fixe Solide (Fini le bleu/flou) */
+        .sticky-header { 
+            background-color: #ffffff; 
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .dark .sticky-header { 
+            background-color: #0a0a0a; 
+            border-bottom: 1px solid #1a1a1a;
+        }
+        /* Badge prix propre */
+        .price-badge { background: rgba(255, 255, 255, 0.95); border: 1px solid #eee; }
+        .dark .price-badge { background: rgba(0, 0, 0, 0.8); border: 1px solid #222; }
     </style>
 
-    <!-- 2. LA LOGIQUE (DÉFINIE AVANT ALPINE) -->
     <script>
         function shopApp() {
             return {
-                sb: null,
-                loading: true,
-                darkMode: false,
-                modalOpen: false,
-                shopInfo: { id: null },
-                displayProducts: [],
-                selectedProduct: null,
-                activeImage: '',
-                selectedSize: null,
+                sb: null, loading: true, darkMode: false, modalOpen: false,
+                shopInfo: { id: null }, displayProducts: [], selectedProduct: null,
+                activeImage: '', selectedSize: null,
 
                 async init() {
-                    // CONFIGURATION
                     const S_URL = "https://foainwlpbpbttqqzuina.supabase.co";
                     const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
                     
@@ -53,37 +53,26 @@
                         const urlParams = new URLSearchParams(window.location.search);
                         const shopId = urlParams.get('id');
 
-                        if (!shopId) {
-                            this.loading = false;
-                            return;
-                        }
+                        if (!shopId) { this.loading = false; return; }
 
-                        // Chargement des données
                         const { data: shop } = await this.sb.from('boutiques').select('*').eq('id', shopId).single();
                         
                         if (shop) {
                             this.shopInfo = shop;
                             const { data: prods } = await this.sb.from('produits').select('*').eq('boutique_id', shopId);
-                            
                             if (prods) {
                                 let pinned = prods.filter(p => p.is_pinned);
                                 let others = prods.filter(p => !p.is_pinned).sort(() => Math.random() - 0.5);
                                 this.displayProducts = [...pinned, ...others];
                             }
-                            // Tracker la visite
-                            await this.sb.from('statistiques').insert([{ boutique_id: shopId, action_type: 'vue' }]);
                         }
-                    } catch (e) {
-                        console.error("Erreur technique:", e);
-                    } finally {
-                        this.loading = false;
-                    }
+                    } catch (e) { console.error(e); } finally { this.loading = false; }
                 },
 
-                openProduct(product) {
-                    this.selectedProduct = product;
-                    this.activeImage = product.images[0];
-                    this.selectedSize = product.tailles ? product.tailles[0] : null;
+                openProduct(p) {
+                    this.selectedProduct = p;
+                    this.activeImage = p.images[0];
+                    this.selectedSize = p.tailles ? p.tailles[0] : null;
                     this.modalOpen = true;
                 },
 
@@ -92,7 +81,6 @@
                 },
 
                 async sendWhatsApp() {
-                    await this.sb.from('statistiques').insert([{ boutique_id: this.shopInfo.id, produit_id: this.selectedProduct.id, action_type: 'clic_wa' }]);
                     const text = `Bonjour ${this.shopInfo.nom_boutique}, je souhaite commander :\n\n🛍️ *${this.selectedProduct.nom}*\n💰 Prix : ${this.formatPrice(this.selectedProduct.prix)}\n📏 Taille : ${this.selectedSize || 'Standard'}\n\nLien : ${window.location.href}`;
                     window.open(`https://wa.me/${this.shopInfo.whatsapp_number}?text=${encodeURIComponent(text)}`, '_blank');
                 }
@@ -101,141 +89,105 @@
     </script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body x-data="shopApp()" class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans">
+<body x-data="shopApp()" class="bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 min-h-screen font-sans">
 
-    <!-- SKELETONS (Pendant le chargement) -->
-    <div x-show="loading" class="max-w-md mx-auto px-4 pt-12">
+    <!-- CHARGEMENT -->
+    <div x-show="loading" class="max-w-md mx-auto px-4 pt-12 text-center">
         <div class="flex flex-col items-center mb-10">
             <div class="w-24 h-24 squircle animate-shimmer"></div>
             <div class="h-6 w-40 rounded-lg mt-4 animate-shimmer"></div>
-            <div class="h-4 w-60 rounded-lg mt-2 animate-shimmer"></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
             <template x-for="i in 4"><div class="aspect-square rounded-3xl animate-shimmer"></div></template>
         </div>
     </div>
 
-    <!-- BOUTIQUE NON TROUVÉE -->
+    <!-- BOUTIQUE INTROUVABLE -->
     <div x-show="!loading && !shopInfo.id" x-cloak class="max-w-md mx-auto h-screen flex flex-col items-center justify-center p-10 text-center">
         <h1 class="text-xl font-black">Boutique introuvable</h1>
-        <p class="text-sm text-zinc-500 mt-2">Le lien utilisé ne correspond à aucune boutique active.</p>
-        <a href="login.html" class="mt-8 bg-zinc-900 text-white px-8 py-3 rounded-2xl font-bold text-sm">Espace Marchand</a>
+        <a href="login.html" class="mt-8 bg-black text-white px-8 py-3 rounded-2xl font-bold text-sm">Espace Marchand</a>
     </div>
 
     <!-- VITRINE RÉELLE -->
     <div x-show="!loading && shopInfo.id" x-cloak>
-        <!-- HEADER FIXE -->
+        <!-- HEADER FIXE SOLIDE -->
         <div class="sticky top-0 z-40 sticky-header">
             <header class="max-w-md mx-auto flex flex-col items-center py-6 text-center">
-                <div class="relative p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 squircle mb-3 shadow-lg">
-                    <div class="bg-white dark:bg-zinc-950 p-[2px] squircle overflow-hidden">
-                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover bg-zinc-100">
+                <!-- Anneau dégradé CHAUD (Orange/Rose/Jaune) -->
+                <div class="relative p-[3px] bg-gradient-to-tr from-orange-500 via-pink-500 to-yellow-400 squircle mb-3 shadow-lg">
+                    <div class="bg-white dark:bg-neutral-950 p-[2px] squircle overflow-hidden">
+                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover bg-neutral-50">
                     </div>
                 </div>
                 <div class="px-8">
                     <h1 class="text-xl font-black tracking-tight" x-text="shopInfo.nom_boutique"></h1>
-                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed" x-text="shopInfo.bio"></p>
+                    <p class="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed" x-text="shopInfo.bio"></p>
                 </div>
             </header>
         </div>
 
-        <!-- GRILLE DE PRODUITS -->
-        <main class="max-w-md mx-auto px-4 pt-6 pb-20 text-center">
+        <main class="max-w-md mx-auto px-4 pt-6 pb-20">
+            <!-- GRILLE SANS TINTES BLEUES -->
             <div class="grid grid-cols-2 gap-3">
                 <template x-for="product in displayProducts" :key="product.id">
-                    <div @click="openProduct(product)" class="relative rounded-[2rem] overflow-hidden bg-zinc-50 dark:bg-zinc-900 shadow-sm cursor-pointer active:scale-95 transition-transform">
+                    <div @click="openProduct(product)" class="relative rounded-[2rem] overflow-hidden bg-neutral-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-95 transition-transform">
                         <img :src="product.images[0]" class="aspect-square object-cover w-full">
                         <template x-if="product.is_pinned">
-                            <div class="absolute top-3 left-3 bg-orange-500 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg">⭐ TOP</div>
+                            <div class="absolute top-3 left-3 bg-orange-600 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg">⭐ TOP</div>
                         </template>
-                        <div class="absolute bottom-3 right-3 px-2 py-1 rounded-xl glass">
+                        <div class="absolute bottom-3 right-3 px-2 py-1 rounded-xl price-badge shadow-sm">
                             <span class="text-[10px] font-bold" x-text="formatPrice(product.prix)"></span>
                         </div>
                     </div>
                 </template>
             </div>
 
-            <!-- FOOTER DISCRET -->
-            <footer class="mt-20 border-t border-zinc-100 dark:border-zinc-800 pt-10 pb-10">
-                <p class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400" x-text="shopInfo.nom_boutique + ' © 2024'"></p>
-                <div class="mt-6 opacity-20 hover:opacity-100 transition-opacity">
+            <footer class="mt-20 border-t border-neutral-100 dark:border-neutral-900 pt-10 text-center">
+                <p class="text-[9px] font-black uppercase tracking-[0.3em] text-neutral-300" x-text="shopInfo.nom_boutique + ' © 2024'"></p>
+                <div class="mt-6 opacity-30">
                     <a href="login.html" class="text-[10px] flex items-center justify-center gap-1">🔒 Administration</a>
                 </div>
             </footer>
         </main>
     </div>
 
-    <!-- MODALE PRODUIT (Z-50) -->
-    <div x-show="modalOpen" 
-         class="fixed inset-0 z-50 bg-white dark:bg-zinc-950 flex flex-col"
-         x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-y-full"
-         x-transition:leave="transition ease-in duration-200 transform" x-transition:leave-end="translate-y-full" x-cloak>
-        
-        <!-- CROIX DE SORTIE (FIXE) -->
+    <!-- MODALE PRODUIT (IDENTIQUE, MAIS MINIATURES SQUIRCLE) -->
+    <div x-show="modalOpen" class="fixed inset-0 z-50 bg-white dark:bg-neutral-950 flex flex-col" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-y-full" x-cloak>
         <div class="absolute top-5 right-5 z-[70]">
-            <button @click="modalOpen = false" class="p-3 bg-black/10 dark:bg-white/10 rounded-full backdrop-blur-xl active:scale-90 transition-all">
+            <button @click="modalOpen = false" class="p-3 bg-black/5 dark:bg-white/5 rounded-full active:scale-90 transition-all">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-
         <div class="flex-1 overflow-y-auto no-scrollbar pb-40">
-            <!-- IMAGE PRINCIPALE -->
-            <div class="w-full aspect-square bg-zinc-100 dark:bg-zinc-900">
-                <img :src="activeImage" class="w-full h-full object-cover">
-            </div>
-
-            <!-- MINIATURES (PETITS CARRÉS) -->
+            <img :src="activeImage" class="w-full aspect-square object-cover bg-neutral-50">
             <div class="flex gap-3 px-6 -mt-10 relative z-10 overflow-x-auto no-scrollbar">
                 <template x-for="(img, index) in selectedProduct?.images" :key="index">
-                    <button @click="activeImage = img" 
-                            :class="activeImage === img ? 'ring-4 ring-orange-500 scale-105 shadow-xl' : 'opacity-80'"
-                            class="w-20 h-20 flex-shrink-0 bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden transition-all border-2 border-transparent">
+                    <button @click="activeImage = img" :class="activeImage === img ? 'ring-4 ring-orange-500 scale-105 shadow-xl' : 'opacity-80'" class="w-20 h-20 flex-shrink-0 bg-white dark:bg-neutral-800 rounded-2xl overflow-hidden transition-all">
                         <img :src="img" class="w-full h-full object-cover">
                     </button>
                 </template>
             </div>
-            
-            <!-- INFOS -->
-            <div class="p-8 text-left">
+            <div class="p-8">
                 <div class="flex justify-between items-start mb-8">
-                    <div class="flex-1">
-                        <h2 class="text-2xl font-black leading-tight" x-text="selectedProduct?.nom"></h2>
-                        <p class="text-xs font-bold text-orange-500 uppercase tracking-widest mt-1">En stock</p>
-                    </div>
-                    <div class="text-right ml-4">
-                        <div class="text-2xl font-black text-zinc-900 dark:text-white" x-text="formatPrice(selectedProduct?.prix)"></div>
-                    </div>
+                    <div class="flex-1"><h2 class="text-2xl font-black" x-text="selectedProduct?.nom"></h2></div>
+                    <div class="text-right ml-4"><div class="text-2xl font-black text-orange-600" x-text="formatPrice(selectedProduct?.prix)"></div></div>
                 </div>
-
-                <div class="space-y-8">
-                    <template x-if="selectedProduct?.tailles && selectedProduct.tailles.length > 0">
+                <div class="space-y-6">
+                    <template x-if="selectedProduct?.tailles.length > 0">
                         <div>
-                            <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taille disponible</label>
+                            <label class="text-[10px] font-black uppercase text-neutral-400">Tailles</label>
                             <div class="flex flex-wrap gap-2 mt-3">
-                                <template x-for="t in selectedProduct.tailles">
-                                    <button @click="selectedSize = t" 
-                                            :class="selectedSize === t ? 'bg-zinc-900 text-white dark:bg-white dark:text-black shadow-lg scale-105' : 'bg-zinc-100 dark:bg-zinc-800'"
-                                            class="px-6 py-3 rounded-2xl text-sm font-bold transition-all" x-text="t"></button>
-                                </template>
+                                <template x-for="t in selectedProduct.tailles"><button @click="selectedSize = t" :class="selectedSize === t ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-neutral-100 dark:bg-neutral-800'" class="px-6 py-3 rounded-2xl text-sm font-bold transition-all" x-text="t"></button></template>
                             </div>
                         </div>
                     </template>
-                    <div>
-                        <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</label>
-                        <p class="text-zinc-600 dark:text-zinc-400 mt-3 leading-relaxed text-sm" x-text="selectedProduct?.description"></p>
-                    </div>
+                    <p class="text-neutral-500 text-sm leading-relaxed" x-text="selectedProduct?.description"></p>
                 </div>
             </div>
         </div>
-
-        <!-- BOUTON WHATSAPP FIXE -->
-        <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white dark:from-zinc-950 dark:via-zinc-950 to-transparent pb-10 border-t border-zinc-100 dark:border-zinc-900">
-            <button @click="sendWhatsApp()" class="w-full bg-[#25D366] text-white py-5 rounded-[2rem] font-bold text-lg flex items-center justify-center gap-3 shadow-[0_20px_50px_rgba(37,211,102,0.4)] active:scale-95 transition-all">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.481 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.306 1.656zm6.29-4.463c1.589.941 3.277 1.438 5.002 1.439 5.305 0 9.622-4.317 9.625-9.623.002-2.571-1.002-4.986-2.826-6.81-1.825-1.825-4.237-2.83-6.809-2.831-5.306 0-9.623 4.317-9.626 9.625 0 1.769.463 3.493 1.339 5.011l-.872 3.186 3.257-.854-.09.054z"/></svg>
-                <span>Commander sur WhatsApp</span>
-            </button>
+        <div class="fixed bottom-0 left-0 w-full p-6 bg-white/90 dark:bg-neutral-950/90 pb-10 border-t border-neutral-50 dark:border-neutral-900">
+            <button @click="sendWhatsApp()" class="w-full bg-[#25D366] text-white py-5 rounded-[2rem] font-bold text-lg flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all">Commander sur WhatsApp</button>
         </div>
     </div>
-
 </body>
 </html>
