@@ -1,61 +1,72 @@
 <!DOCTYPE html>
-<html lang="fr" x-data="authApp()">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion Marchand | LuxStore</title>
+    <title>Connexion | Administration</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .squircle { border-radius: 28%; }
+    </style>
 </head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen p-6">
-    <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10">
+<body x-data="authApp()" class="bg-gray-50 flex items-center justify-center min-h-screen p-6">
+
+    <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-zinc-100">
         <div class="text-center mb-10">
-            <h1 class="text-2xl font-black tracking-tight" x-text="mode === 'login' ? 'Bienvenue' : 'Inscription'"></h1>
-            <p class="text-sm text-zinc-400 mt-2" x-text="mode === 'login' ? 'Gérez votre boutique' : 'Créez votre boutique gratuitement'"></p>
+            <h1 class="text-2xl font-black tracking-tight" x-text="mode === 'login' ? 'Connexion' : 'Créer Boutique'"></h1>
         </div>
         
         <form @submit.prevent="handleAuth" class="space-y-4">
-            <template x-if="mode === 'register'">
-                <div class="space-y-4">
-                    <input type="text" x-model="form.shopName" placeholder="Nom de la boutique" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
-                    <input type="tel" x-model="form.phone" placeholder="WhatsApp (ex: 225...)" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
-                </div>
-            </template>
+            <div x-show="mode === 'register'" x-cloak class="space-y-4">
+                <input type="text" x-model="form.shopName" placeholder="Nom boutique" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
+                <input type="tel" x-model="form.phone" placeholder="WhatsApp" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
+            </div>
             <input type="email" x-model="form.email" placeholder="Email" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
             <input type="password" x-model="form.password" placeholder="Mot de passe" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
-            
-            <p x-show="msg" x-text="msg" class="text-xs text-red-500 text-center"></p>
-            
-            <button type="submit" :disabled="loading" class="w-full bg-black text-white py-5 rounded-2xl font-bold text-lg active:scale-95 transition-all shadow-lg">
-                <span x-text="loading ? 'Veuillez patienter...' : (mode === 'login' ? 'Se connecter' : 'C\'est parti !')"></span>
+            <div x-show="msg" x-text="msg" class="text-xs text-red-500 font-bold text-center"></div>
+            <button type="submit" :disabled="loading" class="w-full bg-zinc-900 text-white py-5 rounded-2xl font-bold shadow-xl disabled:opacity-50">
+                <span x-text="loading ? 'Patientez...' : (mode === 'login' ? 'Se connecter' : 'S\'inscrire')"></span>
             </button>
         </form>
 
-        <button @click="mode = (mode === 'login' ? 'register' : 'login')" class="w-full mt-8 text-sm font-bold text-zinc-400">
-            <span x-text="mode === 'login' ? 'Créer un compte' : 'Déjà inscrit ? Connexion'"></span>
+        <button @click="mode = (mode === 'login' ? 'register' : 'login'); msg = ''" class="w-full mt-8 text-sm font-bold text-zinc-400">
+            <span x-text="mode === 'login' ? 'Pas de compte ? S\'inscrire' : 'Déjà inscrit ? Connexion'"></span>
         </button>
     </div>
 
     <script>
-        const SUPABASE_URL = "https://foainwlpbpbttqqzuina.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         function authApp() {
             return {
-                mode: 'login', loading: false, msg: '',
+                sb: null,
+                mode: 'login',
+                loading: false,
+                msg: '',
                 form: { email: '', password: '', shopName: '', phone: '' },
+
+                init() {
+                    // Initialisation interne pour éviter l'erreur "before initialization"
+                    const S_URL = "https://foainwlpbpbttqqzuina.supabase.co"; 
+                    const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
+                    this.sb = supabase.createClient(S_URL, S_KEY);
+                },
+
                 async handleAuth() {
-                    this.loading = true; this.msg = '';
+                    this.loading = true;
+                    this.msg = '';
                     try {
                         if (this.mode === 'register') {
-                            const { data, error } = await supabase.auth.signUp({ email: this.form.email, password: this.form.password });
+                            const { data, error } = await this.sb.auth.signUp({ email: this.form.email, password: this.form.password });
                             if (error) throw error;
-                            await supabase.from('boutiques').insert([{ id: data.user.id, nom_boutique: this.form.shopName, whatsapp_number: this.form.phone, bio: 'Bienvenue !' }]);
-                            this.msg = "Compte créé ! Connectez-vous."; this.mode = 'login';
+                            if (data.user) {
+                                await this.sb.from('boutiques').insert([{ id: data.user.id, nom_boutique: this.form.shopName, whatsapp_number: this.form.phone, bio: 'Bienvenue !' }]);
+                            }
+                            this.msg = "Compte créé ! Connectez-vous.";
+                            this.mode = 'login';
                         } else {
-                            const { error } = await supabase.auth.signInWithPassword({ email: this.form.email, password: this.form.password });
+                            const { error } = await this.sb.auth.signInWithPassword({ email: this.form.email, password: this.form.password });
                             if (error) throw error;
                             window.location.href = "dashboard.html";
                         }
