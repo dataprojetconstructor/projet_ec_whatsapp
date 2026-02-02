@@ -3,118 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Marchand | LuxStore</title>
+    <title>Dashboard | LuxStore</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        .squircle { border-radius: 28%; }
-        [x-cloak] { display: none !important; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-    </style>
 </head>
-<body class="bg-gray-50 text-zinc-900 min-h-screen pb-24">
-
-    <!-- BARRE DE NAVIGATION -->
-    <nav class="bg-white border-b border-zinc-100 px-6 py-4 sticky top-0 z-30 flex justify-between items-center">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-zinc-900 squircle flex items-center justify-center text-white font-bold text-xs">M</div>
-            <h1 class="font-black tracking-tight text-lg">Mon Dashboard</h1>
-        </div>
-        <button @click="logout" class="text-zinc-400 hover:text-red-500 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-        </button>
+<body class="bg-gray-50 min-h-screen pb-20">
+    <nav class="bg-white border-b p-6 flex justify-between items-center sticky top-0 z-10">
+        <h1 class="font-black text-xl">Mon Dashboard</h1>
+        <button @click="logout" class="text-zinc-400 font-bold text-xs">Déconnexion</button>
     </nav>
 
-    <main class="max-w-md mx-auto p-6 space-y-8">
-        
-        <!-- SECTION STATS -->
-        <section>
-            <h2 class="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 ml-1">Performances</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-zinc-100">
-                    <span class="text-3xl font-black block" x-text="stats.views">0</span>
-                    <span class="text-xs text-zinc-400 font-bold">Visiteurs</span>
-                </div>
-                <div class="bg-zinc-900 p-6 rounded-[2rem] shadow-lg text-white">
-                    <span class="text-3xl font-black block" x-text="stats.clicks">0</span>
-                    <span class="text-xs text-zinc-300 font-bold">Intérêt WhatsApp</span>
-                </div>
+    <main class="max-w-md mx-auto p-6 space-y-6">
+        <!-- STATS -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border">
+                <span class="text-3xl font-black block" x-text="stats.views">0</span>
+                <span class="text-[10px] uppercase font-black text-zinc-400">Visites</span>
             </div>
-        </section>
-
-        <!-- SECTION GESTION PRODUITS -->
-        <section>
-            <div class="flex justify-between items-center mb-4 ml-1">
-                <h2 class="text-[10px] font-black uppercase tracking-widest text-zinc-400">Mes Produits</h2>
-                <span class="text-[10px] font-bold text-zinc-400" x-text="products.length + ' articles'"></span>
+            <div class="bg-zinc-900 text-white p-6 rounded-[2rem] shadow-lg">
+                <span class="text-3xl font-black block" x-text="stats.clicks">0</span>
+                <span class="text-[10px] uppercase font-black text-zinc-400">Clics WA</span>
             </div>
+        </div>
 
-            <div class="space-y-3">
-                <template x-for="product in products" :key="product.id">
-                    <div class="bg-white p-4 rounded-3xl border border-zinc-100 flex items-center gap-4 shadow-sm">
-                        <img :src="product.images[0]" class="w-16 h-16 rounded-2xl object-cover bg-gray-100">
-                        <div class="flex-1">
-                            <h3 class="font-bold text-sm truncate w-32" x-text="product.nom"></h3>
-                            <p class="text-xs text-zinc-400 font-bold" x-text="formatPrice(product.prix)"></p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <!-- Bouton Pin -->
-                            <button @click="togglePin(product)" :class="product.is_pinned ? 'text-orange-500 bg-orange-50' : 'text-zinc-300 bg-gray-50'" class="p-3 rounded-xl transition-all">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-                            </button>
-                            <!-- Bouton Delete -->
-                            <button @click="deleteProduct(product.id)" class="p-3 text-zinc-300 hover:text-red-500 transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                        </div>
+        <!-- LIEN BOUTIQUE -->
+        <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex justify-between items-center">
+            <div class="text-[10px] font-bold text-blue-600 truncate mr-2" x-text="shopLink"></div>
+            <button @click="copyLink" class="bg-blue-600 text-white text-[10px] px-3 py-1 rounded-lg font-bold">Copier</button>
+        </div>
+
+        <!-- PRODUITS -->
+        <h2 class="text-[10px] font-black uppercase text-zinc-400 tracking-widest mt-10">Mes Articles</h2>
+        <div class="space-y-3">
+            <template x-for="p in products" :key="p.id">
+                <div class="bg-white p-3 rounded-2xl flex items-center gap-4 border shadow-sm">
+                    <img :src="p.images[0]" class="w-12 h-12 rounded-xl object-cover">
+                    <div class="flex-1">
+                        <h3 class="text-sm font-bold truncate" x-text="p.nom"></h3>
+                        <p class="text-xs text-zinc-400" x-text="p.prix + ' XOF'"></p>
                     </div>
-                </template>
-            </div>
-        </section>
+                    <button @click="togglePin(p)" :class="p.is_pinned ? 'text-orange-500' : 'text-zinc-200'">⭐</button>
+                    <button @click="delProd(p.id)" class="text-zinc-200">🗑️</button>
+                </div>
+            </template>
+        </div>
     </main>
 
-    <!-- BOUTON D'AJOUT FLOTTANT -->
-    <button @click="showModal = true" class="fixed bottom-8 right-8 bg-zinc-900 text-white p-5 rounded-[2rem] shadow-2xl active:scale-95 transition-all z-40">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-    </button>
+    <!-- BOUTON AJOUT -->
+    <button @click="showAdd = true" class="fixed bottom-6 right-6 bg-black text-white p-5 rounded-[2rem] shadow-2xl">+</button>
 
-    <!-- MODALE D'AJOUT (Plein écran) -->
-    <div x-show="showModal" x-cloak class="fixed inset-0 z-50 bg-white overflow-y-auto" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-y-full">
-        <div class="p-6 pb-20 max-w-md mx-auto">
-            <div class="flex justify-between items-center mb-10">
-                <h2 class="text-2xl font-black tracking-tight">Nouvel Article</h2>
-                <button @click="showModal = false" class="text-zinc-400">Fermer</button>
-            </div>
-
-            <form @submit.prevent="submitProduct" class="space-y-6">
-                <!-- Upload Photo -->
-                <div>
-                    <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Photos (Max 4)</label>
-                    <input type="file" @change="handleFileUpload" multiple accept="image/*" class="text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200">
-                    <div class="flex gap-2 mt-4 overflow-x-auto">
-                        <template x-for="prev in previews">
-                            <img :src="prev" class="w-20 h-20 rounded-2xl object-cover border border-zinc-100">
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Infos -->
-                <div class="space-y-4">
-                    <input type="text" x-model="newProduct.nom" placeholder="Nom du produit" required class="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-zinc-900">
-                    <textarea x-model="newProduct.description" placeholder="Description" rows="3" class="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-zinc-900"></textarea>
-                    <div class="grid grid-cols-2 gap-4">
-                        <input type="number" x-model="newProduct.prix" placeholder="Prix" required class="bg-gray-50 border-none rounded-2xl px-5 py-4 outline-none">
-                        <input type="number" x-model="newProduct.prix_promo" placeholder="Prix Promo" class="bg-gray-50 border-none rounded-2xl px-5 py-4 outline-none">
-                    </div>
-                    <input type="text" x-model="newProduct.tailles" placeholder="Tailles (ex: 38, 40, 42)" class="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 outline-none">
-                </div>
-
-                <button type="submit" :disabled="uploading" class="w-full bg-zinc-900 text-white py-5 rounded-3xl font-bold shadow-xl disabled:opacity-50">
-                    <span x-text="uploading ? 'Envoi en cours...' : 'Ajouter au catalogue'"></span>
-                </button>
-            </form>
+    <!-- MODALE AJOUT -->
+    <div x-show="showAdd" class="fixed inset-0 bg-white z-50 p-6 overflow-y-auto" x-cloak>
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-2xl font-black">Nouvel Article</h2>
+            <button @click="showAdd = false" class="text-zinc-400 font-bold">Fermer</button>
         </div>
+        <form @submit.prevent="addProd" class="space-y-4">
+            <input type="file" @change="files = Array.from($event.target.files)" multiple class="text-xs">
+            <input type="text" x-model="form.nom" placeholder="Nom" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
+            <textarea x-model="form.desc" placeholder="Description" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required></textarea>
+            <input type="number" x-model="form.prix" placeholder="Prix" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
+            <input type="text" x-model="form.sizes" placeholder="Tailles (ex: M, L, XL)" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
+            <button type="submit" :disabled="up" class="w-full bg-black text-white py-5 rounded-2xl font-bold" x-text="up ? 'Chargement...' : 'Ajouter'"></button>
+        </form>
     </div>
 
     <script>
@@ -124,99 +76,41 @@
 
         function dashboardApp() {
             return {
-                user: null,
-                showModal: false,
-                uploading: false,
-                products: [],
-                previews: [],
-                stats: { views: 0, clicks: 0 },
-                newProduct: { nom: '', description: '', prix: '', prix_promo: '', tailles: '' },
-                files: [],
-
+                user: null, products: [], stats: { views: 0, clicks: 0 }, shopLink: '', showAdd: false, up: false,
+                form: { nom: '', desc: '', prix: '', sizes: '' }, files: [],
                 async init() {
                     const { data: { session } } = await supabase.auth.getSession();
-                    if (!session) {
-                        window.location.href = "login.html";
-                        return;
-                    }
+                    if (!session) { window.location.href = "login.html"; return; }
                     this.user = session.user;
-                    this.fetchData();
+                    this.shopLink = window.location.origin + window.location.pathname.replace('dashboard.html', 'index.html') + '?id=' + this.user.id;
+                    this.fetch();
                 },
-
-                async fetchData() {
-                    // Charger Produits
-                    const { data: prods } = await supabase.from('produits').select('*').eq('boutique_id', this.user.id).order('created_at', { ascending: false });
-                    this.products = prods || [];
-
-                    // Charger Stats (Simulé pour cet exemple, à lier à ta table stats)
-                    const { count: viewCount } = await supabase.from('statistiques').select('*', { count: 'exact', head: true }).eq('boutique_id', this.user.id).eq('action_type', 'vue');
-                    const { count: clickCount } = await supabase.from('statistiques').select('*', { count: 'exact', head: true }).eq('boutique_id', this.user.id).eq('action_type', 'clic_wa');
-                    this.stats.views = viewCount || 0;
-                    this.stats.clicks = clickCount || 0;
+                async fetch() {
+                    const { data: ps } = await supabase.from('produits').select('*').eq('boutique_id', this.user.id).order('created_at', { ascending: false });
+                    this.products = ps || [];
+                    const { count: v } = await supabase.from('statistiques').select('*', { count: 'exact', head: true }).eq('boutique_id', this.user.id).eq('action_type', 'vue');
+                    const { count: c } = await supabase.from('statistiques').select('*', { count: 'exact', head: true }).eq('boutique_id', this.user.id).eq('action_type', 'clic_wa');
+                    this.stats = { views: v || 0, clicks: c || 0 };
                 },
-
-                handleFileUpload(e) {
-                    const files = Array.from(e.target.files);
-                    this.files = files;
-                    this.previews = files.map(f => URL.createObjectURL(f));
-                },
-
-                async submitProduct() {
-                    this.uploading = true;
+                async addProd() {
+                    this.up = true;
                     try {
-                        const uploadedUrls = [];
-                        
-                        // Upload & Compression simple (via Supabase Storage)
-                        for (let file of this.files) {
-                            const fileName = `${Date.now()}-${file.name}`;
-                            const { data, error } = await supabase.storage.from('produits-photos').upload(`${this.user.id}/${fileName}`, file);
-                            if (error) throw error;
-                            
-                            const { data: { publicUrl } } = supabase.storage.from('produits-photos').getPublicUrl(`${this.user.id}/${fileName}`);
-                            uploadedUrls.push(publicUrl);
+                        let urls = [];
+                        for (let f of this.files) {
+                            const name = `${Date.now()}-${f.name}`;
+                            const { data } = await supabase.storage.from('produits-photos').upload(`${this.user.id}/${name}`, f);
+                            const { data: { publicUrl } } = supabase.storage.from('produits-photos').getPublicUrl(`${this.user.id}/${name}`);
+                            urls.push(publicUrl);
                         }
-
-                        // Enregistrement DB
-                        const { error } = await supabase.from('produits').insert([{
-                            boutique_id: this.user.id,
-                            nom: this.newProduct.nom,
-                            description: this.newProduct.description,
-                            prix: parseFloat(this.newProduct.prix),
-                            prix_promo: this.newProduct.prix_promo ? parseFloat(this.newProduct.prix_promo) : null,
-                            tailles: this.newProduct.tailles.split(',').map(t => t.trim()),
-                            images: uploadedUrls
-                        }]);
-
-                        if (error) throw error;
-                        this.showModal = false;
-                        this.fetchData(); // Refresh list
-                    } catch (err) {
-                        alert(err.message);
-                    } finally {
-                        this.uploading = false;
-                    }
+                        await supabase.from('produits').insert([{ boutique_id: this.user.id, nom: this.form.nom, description: this.form.desc, prix: this.form.prix, tailles: this.form.sizes.split(','), images: urls }]);
+                        this.showAdd = false; this.fetch();
+                    } catch (e) { alert(e.message); }
+                    this.up = false;
                 },
-
-                async togglePin(product) {
-                    const { error } = await supabase.from('produits').update({ is_pinned: !product.is_pinned }).eq('id', product.id);
-                    if (!error) this.fetchData();
-                },
-
-                async deleteProduct(id) {
-                    if (confirm('Supprimer cet article ?')) {
-                        await supabase.from('produits').delete().eq('id', id);
-                        this.fetchData();
-                    }
-                },
-
-                async logout() {
-                    await supabase.auth.signOut();
-                    window.location.href = "login.html";
-                },
-
-                formatPrice(price) {
-                    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(price);
-                }
+                async togglePin(p) { await supabase.from('produits').update({ is_pinned: !p.is_pinned }).eq('id', p.id); this.fetch(); },
+                async delProd(id) { if(confirm('Supprimer ?')) { await supabase.from('produits').delete().eq('id', id); this.fetch(); } },
+                async logout() { await supabase.auth.signOut(); window.location.href = "login.html"; },
+                copyLink() { navigator.clipboard.writeText(this.shopLink); alert('Lien copié !'); }
             }
         }
     </script>
