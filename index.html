@@ -3,112 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion Marchand | Administration</title>
-    <!-- 1. BIBLIOTHÈQUES -->
+    <title>Boutique Officielle | Catalogue</title>
+
+    <!-- 1. CHARGEMENT DES BIBLIOTHÈQUES (ORDRE CRITIQUE) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
     <style>
         [x-cloak] { display: none !important; }
         .squircle { border-radius: 28%; }
-    </style>
-</head>
-<body x-data="authApp()" class="bg-gray-50 flex items-center justify-center min-h-screen p-6 font-sans">
-
-    <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-zinc-100">
-        <!-- HEADER -->
-        <div class="text-center mb-10">
-            <div class="w-16 h-16 bg-zinc-900 squircle flex items-center justify-center mb-4 mx-auto shadow-lg text-white font-bold text-xl">
-                <span x-text="mode === 'login' ? 'L' : 'R'"></span>
-            </div>
-            <h1 class="text-2xl font-black tracking-tight" x-text="mode === 'login' ? 'Bienvenue' : 'Inscription'"></h1>
-            <p class="text-sm text-zinc-400 mt-2" x-text="mode === 'login' ? 'Gérez votre boutique' : 'Créez votre boutique en 2 minutes'"></p>
-        </div>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        <!-- FORMULAIRE -->
-        <form @submit.prevent="handleAuth" class="space-y-4">
-            <!-- Champs spécifiques Inscription -->
-            <div x-show="mode === 'register'" x-cloak class="space-y-4 mb-4">
-                <input type="text" x-model="form.shopName" placeholder="Nom de la boutique" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-900 transition-all">
-                <input type="tel" x-model="form.phone" placeholder="WhatsApp (ex: 225...)" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-900 transition-all">
-            </div>
+        /* Animation Shimmer (Skeletons) */
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        .animate-shimmer { position: relative; overflow: hidden; background-color: #f4f4f5; }
+        .dark .animate-shimmer { background-color: #27272a; }
+        .animate-shimmer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shimmer 1.5s infinite; }
 
-            <input type="email" x-model="form.email" placeholder="Email" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-900 transition-all" required>
-            <input type="password" x-model="form.password" placeholder="Mot de passe" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-zinc-900 transition-all" required>
-            
-            <!-- Message d'erreur -->
-            <div x-show="msg" x-cloak x-text="msg" class="text-xs text-red-500 bg-red-50 p-3 rounded-xl font-bold text-center"></div>
-            
-            <button type="submit" :disabled="loading" class="w-full bg-zinc-900 text-white py-5 rounded-2xl font-bold text-lg active:scale-95 transition-all shadow-xl disabled:opacity-50">
-                <span x-show="!loading" x-text="mode === 'login' ? 'Se connecter' : 'C\'est parti !'"></span>
-                <span x-show="loading" x-cloak>Veuillez patienter...</span>
-            </button>
-        </form>
+        /* Header Fixe avec Flou */
+        .sticky-header { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background-color: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .dark .sticky-header { background-color: rgba(9, 9, 11, 0.8); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); }
+    </style>
 
-        <!-- CHANGEMENT DE MODE -->
-        <button @click="mode = (mode === 'login' ? 'register' : 'login'); msg = ''" class="w-full mt-8 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">
-            <span x-text="mode === 'login' ? 'Pas encore de compte ? S\'inscrire' : 'Déjà inscrit ? Se connecter'"></span>
-        </button>
-    </div>
+    <!-- 2. LA LOGIQUE (DÉFINIE AVANT ALPINE) -->
+    <script>
+        function shopApp() {
+            return {
+                sb: null,
+                loading: true,
+                darkMode: false,
+                modalOpen: false,
+                shopInfo: { id: null },
+                displayProducts: [],
+                selectedProduct: null,
+                activeImage: '',
+                selectedSize: null,
 
-    <!-- 2. LOGIQUE JAVASCRIPT -->
-   <script>
-    function shopApp() {
-        return {
-            sb: null,
-            loading: true,
-            darkMode: false,
-            shopInfo: { id: null },
-            displayProducts: [],
-
-            async init() {
-                // 1. VOS CLÉS SUPABASE (À copier depuis Settings > API)
-                const S_URL = "https://foainwlpbpbttqqzuina.supabase.co"; // DOIT commencer par https://
-                const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
-
-                // 2. Vérification de sécurité pour éviter l'écran noir
-                if (S_URL.includes("TA_URL") || S_URL === "") {
-                    console.error("ERREUR : Vous devez configurer vos clés Supabase.");
-                    this.loading = false;
-                    return;
-                }
-
-                try {
-                    // Initialisation du client
-                    this.sb = supabase.createClient(S_URL, S_KEY);
+                async init() {
+                    // CONFIGURATION
+                    const S_URL = "https://foainwlpbpbttqqzuina.supabase.co";
+                    const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
                     
-                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
+                    try {
+                        this.sb = supabase.createClient(S_URL, S_KEY);
+                        if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
 
-                    // Récupération de l'ID marchand dans l'URL
-                    const params = new URLSearchParams(window.location.search);
-                    const shopId = params.get('id');
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const shopId = urlParams.get('id');
 
-                    if (!shopId) {
-                        console.warn("ID manquant dans l'URL. Essayez d'ajouter ?id=VOTRE_ID");
+                        if (!shopId) {
+                            this.loading = false;
+                            return;
+                        }
+
+                        // Chargement des données
+                        const { data: shop } = await this.sb.from('boutiques').select('*').eq('id', shopId).single();
+                        
+                        if (shop) {
+                            this.shopInfo = shop;
+                            const { data: prods } = await this.sb.from('produits').select('*').eq('boutique_id', shopId);
+                            
+                            if (prods) {
+                                let pinned = prods.filter(p => p.is_pinned);
+                                let others = prods.filter(p => !p.is_pinned).sort(() => Math.random() - 0.5);
+                                this.displayProducts = [...pinned, ...others];
+                            }
+                            // Tracker la visite
+                            await this.sb.from('statistiques').insert([{ boutique_id: shopId, action_type: 'vue' }]);
+                        }
+                    } catch (e) {
+                        console.error("Erreur technique:", e);
+                    } finally {
                         this.loading = false;
-                        return;
                     }
+                },
 
-                    // Charger les données
-                    const { data: shop, error: shopErr } = await this.sb.from('boutiques').select('*').eq('id', shopId).single();
-                    
-                    if (shop) {
-                        this.shopInfo = shop;
-                        const { data: prods } = await this.sb.from('produits').select('*').eq('boutique_id', shopId);
-                        this.displayProducts = prods || [];
-                    }
-                } catch (err) {
-                    console.error("Erreur technique de connexion :", err);
-                } finally {
-                    this.loading = false;
+                openProduct(product) {
+                    this.selectedProduct = product;
+                    this.activeImage = product.images[0];
+                    this.selectedSize = product.tailles ? product.tailles[0] : null;
+                    this.modalOpen = true;
+                },
+
+                formatPrice(p) {
+                    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p);
+                },
+
+                async sendWhatsApp() {
+                    await this.sb.from('statistiques').insert([{ boutique_id: this.shopInfo.id, produit_id: this.selectedProduct.id, action_type: 'clic_wa' }]);
+                    const text = `Bonjour ${this.shopInfo.nom_boutique}, je souhaite commander :\n\n🛍️ *${this.selectedProduct.nom}*\n💰 Prix : ${this.formatPrice(this.selectedProduct.prix)}\n📏 Taille : ${this.selectedSize || 'Standard'}\n\nLien : ${window.location.href}`;
+                    window.open(`https://wa.me/${this.shopInfo.whatsapp_number}?text=${encodeURIComponent(text)}`, '_blank');
                 }
-            },
-
-            formatPrice(p) {
-                return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p);
             }
         }
-    }
-</script>
+    </script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body x-data="shopApp()" class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans">
+
+    <!-- SKELETONS (Pendant le chargement) -->
+    <div x-show="loading" class="max-w-md mx-auto px-4 pt-12">
+        <div class="flex flex-col items-center mb-10">
+            <div class="w-24 h-24 squircle animate-shimmer"></div>
+            <div class="h-6 w-40 rounded-lg mt-4 animate-shimmer"></div>
+            <div class="h-4 w-60 rounded-lg mt-2 animate-shimmer"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <template x-for="i in 4"><div class="aspect-square rounded-3xl animate-shimmer"></div></template>
+        </div>
+    </div>
+
+    <!-- BOUTIQUE NON TROUVÉE -->
+    <div x-show="!loading && !shopInfo.id" x-cloak class="max-w-md mx-auto h-screen flex flex-col items-center justify-center p-10 text-center">
+        <h1 class="text-xl font-black">Boutique introuvable</h1>
+        <p class="text-sm text-zinc-500 mt-2">Le lien utilisé ne correspond à aucune boutique active.</p>
+        <a href="login.html" class="mt-8 bg-zinc-900 text-white px-8 py-3 rounded-2xl font-bold text-sm">Espace Marchand</a>
+    </div>
+
+    <!-- VITRINE RÉELLE -->
+    <div x-show="!loading && shopInfo.id" x-cloak>
+        <!-- HEADER FIXE -->
+        <div class="sticky top-0 z-40 sticky-header">
+            <header class="max-w-md mx-auto flex flex-col items-center py-6 text-center">
+                <div class="relative p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 squircle mb-3 shadow-lg">
+                    <div class="bg-white dark:bg-zinc-950 p-[2px] squircle overflow-hidden">
+                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover bg-zinc-100">
+                    </div>
+                </div>
+                <div class="px-8">
+                    <h1 class="text-xl font-black tracking-tight" x-text="shopInfo.nom_boutique"></h1>
+                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed" x-text="shopInfo.bio"></p>
+                </div>
+            </header>
+        </div>
+
+        <!-- GRILLE DE PRODUITS -->
+        <main class="max-w-md mx-auto px-4 pt-6 pb-20 text-center">
+            <div class="grid grid-cols-2 gap-3">
+                <template x-for="product in displayProducts" :key="product.id">
+                    <div @click="openProduct(product)" class="relative rounded-[2rem] overflow-hidden bg-zinc-50 dark:bg-zinc-900 shadow-sm cursor-pointer active:scale-95 transition-transform">
+                        <img :src="product.images[0]" class="aspect-square object-cover w-full">
+                        <template x-if="product.is_pinned">
+                            <div class="absolute top-3 left-3 bg-orange-500 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg">⭐ TOP</div>
+                        </template>
+                        <div class="absolute bottom-3 right-3 px-2 py-1 rounded-xl glass">
+                            <span class="text-[10px] font-bold" x-text="formatPrice(product.prix)"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- FOOTER DISCRET -->
+            <footer class="mt-20 border-t border-zinc-100 dark:border-zinc-800 pt-10 pb-10">
+                <p class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400" x-text="shopInfo.nom_boutique + ' © 2024'"></p>
+                <div class="mt-6 opacity-20 hover:opacity-100 transition-opacity">
+                    <a href="login.html" class="text-[10px] flex items-center justify-center gap-1">🔒 Administration</a>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- MODALE PRODUIT (Z-50) -->
+    <div x-show="modalOpen" 
+         class="fixed inset-0 z-50 bg-white dark:bg-zinc-950 flex flex-col"
+         x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-y-full"
+         x-transition:leave="transition ease-in duration-200 transform" x-transition:leave-end="translate-y-full" x-cloak>
+        
+        <!-- CROIX DE SORTIE (FIXE) -->
+        <div class="absolute top-5 right-5 z-[70]">
+            <button @click="modalOpen = false" class="p-3 bg-black/10 dark:bg-white/10 rounded-full backdrop-blur-xl active:scale-90 transition-all">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-40">
+            <!-- IMAGE PRINCIPALE -->
+            <div class="w-full aspect-square bg-zinc-100 dark:bg-zinc-900">
+                <img :src="activeImage" class="w-full h-full object-cover">
+            </div>
+
+            <!-- MINIATURES (PETITS CARRÉS) -->
+            <div class="flex gap-3 px-6 -mt-10 relative z-10 overflow-x-auto no-scrollbar">
+                <template x-for="(img, index) in selectedProduct?.images" :key="index">
+                    <button @click="activeImage = img" 
+                            :class="activeImage === img ? 'ring-4 ring-orange-500 scale-105 shadow-xl' : 'opacity-80'"
+                            class="w-20 h-20 flex-shrink-0 bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden transition-all border-2 border-transparent">
+                        <img :src="img" class="w-full h-full object-cover">
+                    </button>
+                </template>
+            </div>
+            
+            <!-- INFOS -->
+            <div class="p-8 text-left">
+                <div class="flex justify-between items-start mb-8">
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-black leading-tight" x-text="selectedProduct?.nom"></h2>
+                        <p class="text-xs font-bold text-orange-500 uppercase tracking-widest mt-1">En stock</p>
+                    </div>
+                    <div class="text-right ml-4">
+                        <div class="text-2xl font-black text-zinc-900 dark:text-white" x-text="formatPrice(selectedProduct?.prix)"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-8">
+                    <template x-if="selectedProduct?.tailles && selectedProduct.tailles.length > 0">
+                        <div>
+                            <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taille disponible</label>
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                <template x-for="t in selectedProduct.tailles">
+                                    <button @click="selectedSize = t" 
+                                            :class="selectedSize === t ? 'bg-zinc-900 text-white dark:bg-white dark:text-black shadow-lg scale-105' : 'bg-zinc-100 dark:bg-zinc-800'"
+                                            class="px-6 py-3 rounded-2xl text-sm font-bold transition-all" x-text="t"></button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</label>
+                        <p class="text-zinc-600 dark:text-zinc-400 mt-3 leading-relaxed text-sm" x-text="selectedProduct?.description"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOUTON WHATSAPP FIXE -->
+        <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white dark:from-zinc-950 dark:via-zinc-950 to-transparent pb-10 border-t border-zinc-100 dark:border-zinc-900">
+            <button @click="sendWhatsApp()" class="w-full bg-[#25D366] text-white py-5 rounded-[2rem] font-bold text-lg flex items-center justify-center gap-3 shadow-[0_20px_50px_rgba(37,211,102,0.4)] active:scale-95 transition-all">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.481 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.306 1.656zm6.29-4.463c1.589.941 3.277 1.438 5.002 1.439 5.305 0 9.622-4.317 9.625-9.623.002-2.571-1.002-4.986-2.826-6.81-1.825-1.825-4.237-2.83-6.809-2.831-5.306 0-9.623 4.317-9.626 9.625 0 1.769.463 3.493 1.339 5.011l-.872 3.186 3.257-.854-.09.054z"/></svg>
+                <span>Commander sur WhatsApp</span>
+            </button>
+        </div>
+    </div>
+
 </body>
 </html>
