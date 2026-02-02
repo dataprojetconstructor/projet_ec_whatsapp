@@ -4,39 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion | Administration</title>
+    
+    <!-- 1. CSS ET SUPABASE -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>
-        [x-cloak] { display: none !important; }
-        .squircle { border-radius: 28%; }
-    </style>
-</head>
-<body x-data="authApp()" class="bg-gray-50 flex items-center justify-center min-h-screen p-6">
 
-    <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-zinc-100">
-        <div class="text-center mb-10">
-            <h1 class="text-2xl font-black tracking-tight" x-text="mode === 'login' ? 'Connexion' : 'Créer Boutique'"></h1>
-        </div>
-        
-        <form @submit.prevent="handleAuth" class="space-y-4">
-            <div x-show="mode === 'register'" x-cloak class="space-y-4">
-                <input type="text" x-model="form.shopName" placeholder="Nom boutique" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
-                <input type="tel" x-model="form.phone" placeholder="WhatsApp" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
-            </div>
-            <input type="email" x-model="form.email" placeholder="Email" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
-            <input type="password" x-model="form.password" placeholder="Mot de passe" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
-            <div x-show="msg" x-text="msg" class="text-xs text-red-500 font-bold text-center"></div>
-            <button type="submit" :disabled="loading" class="w-full bg-zinc-900 text-white py-5 rounded-2xl font-bold shadow-xl disabled:opacity-50">
-                <span x-text="loading ? 'Patientez...' : (mode === 'login' ? 'Se connecter' : 'S\'inscrire')"></span>
-            </button>
-        </form>
-
-        <button @click="mode = (mode === 'login' ? 'register' : 'login'); msg = ''" class="w-full mt-8 text-sm font-bold text-zinc-400">
-            <span x-text="mode === 'login' ? 'Pas de compte ? S\'inscrire' : 'Déjà inscrit ? Connexion'"></span>
-        </button>
-    </div>
-
+    <!-- 2. LA LOGIQUE (DOIT ÊTRE AVANT ALPINE) -->
     <script>
         function authApp() {
             return {
@@ -47,34 +20,100 @@
                 form: { email: '', password: '', shopName: '', phone: '' },
 
                 init() {
-                    // Initialisation interne pour éviter l'erreur "before initialization"
-                    const S_URL = "https://foainwlpbpbttqqzuina.supabase.co"; 
+                    // Tes vraies clés configurées ici
+                    const S_URL = "https://foainwlpbpbttqqzuina.supabase.co";
                     const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
-                    this.sb = supabase.createClient(S_URL, S_KEY);
+                    
+                    try {
+                        this.sb = supabase.createClient(S_URL, S_KEY);
+                        console.log("Supabase initialisé avec succès");
+                    } catch (e) {
+                        console.error("Erreur d'initialisation Supabase:", e);
+                    }
                 },
 
                 async handleAuth() {
+                    if (this.loading) return;
                     this.loading = true;
                     this.msg = '';
+
                     try {
                         if (this.mode === 'register') {
-                            const { data, error } = await this.sb.auth.signUp({ email: this.form.email, password: this.form.password });
+                            const { data, error } = await this.sb.auth.signUp({
+                                email: this.form.email,
+                                password: this.form.password,
+                            });
                             if (error) throw error;
+
                             if (data.user) {
-                                await this.sb.from('boutiques').insert([{ id: data.user.id, nom_boutique: this.form.shopName, whatsapp_number: this.form.phone, bio: 'Bienvenue !' }]);
+                                const { error: shopError } = await this.sb.from('boutiques').insert([{
+                                    id: data.user.id,
+                                    nom_boutique: this.form.shopName,
+                                    whatsapp_number: this.form.phone,
+                                    bio: 'Bienvenue dans ma boutique !'
+                                }]);
+                                if (shopError) throw shopError;
                             }
-                            this.msg = "Compte créé ! Connectez-vous.";
+                            this.msg = "Compte créé ! Connectez-vous maintenant.";
                             this.mode = 'login';
                         } else {
-                            const { error } = await this.sb.auth.signInWithPassword({ email: this.form.email, password: this.form.password });
+                            const { error } = await this.sb.auth.signInWithPassword({
+                                email: this.form.email,
+                                password: this.form.password,
+                            });
                             if (error) throw error;
                             window.location.href = "dashboard.html";
                         }
-                    } catch (e) { this.msg = e.message; }
-                    this.loading = false;
+                    } catch (e) {
+                        this.msg = "Erreur : " + e.message;
+                        console.error(e);
+                    } finally {
+                        this.loading = false;
+                    }
                 }
             }
         }
     </script>
+
+    <!-- 3. ALPINE JS (EN DERNIER) -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        .squircle { border-radius: 28%; }
+    </style>
+</head>
+<body x-data="authApp()" class="bg-gray-50 flex items-center justify-center min-h-screen p-6">
+
+    <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-zinc-100">
+        <div class="text-center mb-10">
+            <h1 class="text-2xl font-black tracking-tight" x-text="mode === 'login' ? 'Connexion' : 'Créer Boutique'"></h1>
+            <p class="text-sm text-zinc-400 mt-2" x-text="mode === 'login' ? 'Gérez vos ventes' : 'Lancez-vous gratuitement'"></p>
+        </div>
+        
+        <form @submit.prevent="handleAuth" class="space-y-4">
+            <!-- Inscription uniquement -->
+            <div x-show="mode === 'register'" x-cloak class="space-y-4">
+                <input type="text" x-model="form.shopName" placeholder="Nom de la boutique" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-black">
+                <input type="tel" x-model="form.phone" placeholder="WhatsApp (ex: 225...)" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-black">
+            </div>
+
+            <!-- Commun -->
+            <input type="email" x-model="form.email" placeholder="Email" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-black" required>
+            <input type="password" x-model="form.password" placeholder="Mot de passe (min 6 caractères)" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-black" required>
+            
+            <div x-show="msg" x-cloak x-text="msg" class="text-xs text-red-500 bg-red-50 p-3 rounded-xl font-bold text-center"></div>
+            
+            <button type="submit" :disabled="loading" class="w-full bg-zinc-900 text-white py-5 rounded-2xl font-bold text-lg active:scale-95 transition-all shadow-xl disabled:opacity-50">
+                <span x-show="!loading" x-text="mode === 'login' ? 'Se connecter' : 'C\'est parti !'"></span>
+                <span x-show="loading" x-cloak>Chargement...</span>
+            </button>
+        </form>
+
+        <button @click="mode = (mode === 'login' ? 'register' : 'login'); msg = ''" class="w-full mt-8 text-sm font-bold text-zinc-400">
+            <span x-text="mode === 'login' ? 'Pas encore de compte ? S\'inscrire' : 'Déjà inscrit ? Connexion'"></span>
+        </button>
+    </div>
+
 </body>
 </html>
