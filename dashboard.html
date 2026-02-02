@@ -5,195 +5,198 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Boutique Officielle | Catalogue Premium</title>
 
+    <!-- 1. CHARGEMENT DES COMPOSANTS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #000000; color: white; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #000000; color: white; margin: 0; }
         [x-cloak] { display: none !important; }
         .squircle { border-radius: 28%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Animation Skeleton Shimmer (Noir Éclairé) */
-        @keyframes pulse-subtle {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-        .animate-skeleton {
-            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-            background-color: #111111;
-        }
+        /* Animation Squelette qui pulse */
+        @keyframes pulse-bg { 0%, 100% { background-color: #111; } 50% { background-color: #181818; } }
+        .skeleton { animation: pulse-bg 2s infinite; }
 
         .sticky-header { 
             background-color: rgba(0, 0, 0, 0.95); 
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-
-        .price-badge { 
-            background: rgba(0, 0, 0, 0.7); 
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
     </style>
-
-    <script>
-        function shopApp() {
-            return {
-                sb: null, loading: true, modalOpen: false,
-                shopInfo: { id: null }, displayProducts: [], selectedProduct: null,
-                activeImage: '', selectedSize: null,
-
-                async init() {
-                    const S_URL = "https://foainwlpbpbttqqzuina.supabase.co";
-                    const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
-                    
-                    // Sécurité : Forcer l'arrêt du chargement après 5s
-                    setTimeout(() => { if(this.loading) this.loading = false; }, 5000);
-
-                    try {
-                        this.sb = supabase.createClient(S_URL, S_KEY);
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const shopId = urlParams.get('id');
-
-                        if (!shopId) { this.loading = false; return; }
-
-                        const { data: shop } = await this.sb.from('boutiques').select('*').eq('id', shopId).single();
-                        
-                        if (shop) {
-                            this.shopInfo = shop;
-                            const { data: prods } = await this.sb.from('produits').select('*').eq('boutique_id', shopId);
-                            if (prods) {
-                                let pinned = prods.filter(p => p.is_pinned);
-                                let others = prods.filter(p => !p.is_pinned).sort(() => Math.random() - 0.5);
-                                this.displayProducts = [...pinned, ...others];
-                            }
-                        }
-                    } catch (e) { 
-                        console.error(e); 
-                    } finally { 
-                        this.loading = false; 
-                    }
-                },
-
-                openProduct(p) {
-                    this.selectedProduct = p;
-                    this.activeImage = p.images[0];
-                    this.selectedSize = p.tailles ? p.tailles[0] : null;
-                    this.modalOpen = true;
-                },
-
-                formatPrice(p) {
-                    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p);
-                },
-
-                async sendWhatsApp() {
-                    const text = `Bonjour ${this.shopInfo.nom_boutique}, je souhaite commander :\n\n🛍️ *${this.selectedProduct.nom}*\n💰 Prix : ${this.formatPrice(this.selectedProduct.prix)}\n📏 Taille : ${this.selectedSize || 'Standard'}\n\nLien : ${window.location.href}`;
-                    window.open(`https://wa.me/${this.shopInfo.whatsapp_number}?text=${encodeURIComponent(text)}`, '_blank');
-                }
-            }
-        }
-    </script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body x-data="shopApp()" class="bg-black text-white min-h-screen">
+<body x-data="shopApp()">
 
-    <!-- 1. ÉCRAN SKELETON (Visible immédiatement) -->
+    <!-- ÉCRAN DE CHARGEMENT / SKELETONS -->
     <div x-show="loading" class="max-w-md mx-auto px-6 pt-12">
         <div class="flex flex-col items-center mb-12">
-            <div class="w-24 h-24 squircle animate-skeleton mb-6"></div>
-            <div class="h-6 w-32 rounded-full animate-skeleton mb-3"></div>
-            <div class="h-3 w-48 rounded-full animate-skeleton opacity-50"></div>
+            <div class="w-24 h-24 squircle skeleton mb-6"></div>
+            <div class="h-6 w-32 rounded-full skeleton mb-3"></div>
+            <div class="h-3 w-48 rounded-full skeleton opacity-50"></div>
         </div>
         <div class="grid grid-cols-2 gap-5">
-            <div class="aspect-square rounded-[2.5rem] animate-skeleton"></div>
-            <div class="aspect-square rounded-[2.5rem] animate-skeleton"></div>
-            <div class="aspect-square rounded-[2.5rem] animate-skeleton"></div>
-            <div class="aspect-square rounded-[2.5rem] animate-skeleton"></div>
+            <div class="aspect-square rounded-[2.5rem] skeleton"></div>
+            <div class="aspect-square rounded-[2.5rem] skeleton"></div>
         </div>
     </div>
 
-    <!-- 2. BOUTIQUE INTROUVABLE -->
-    <div x-show="!loading && !shopInfo.id" x-cloak class="max-w-md mx-auto h-screen flex flex-col items-center justify-center p-10 text-center">
-        <div class="w-20 h-20 bg-neutral-900 squircle flex items-center justify-center mb-6">
-            <svg class="w-8 h-8 text-neutral-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-        </div>
-        <h1 class="text-xl font-black">Lien non valide</h1>
-        <a href="login.html" class="mt-8 bg-white text-black px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest">Admin</a>
-    </div>
-
-    <!-- 3. VITRINE RÉELLE (Noir Éclairé) -->
-    <div x-show="!loading && shopInfo.id" x-cloak>
-        <div class="sticky top-0 z-40 sticky-header">
-            <header class="max-w-md mx-auto flex flex-col items-center py-8 text-center">
-                <div class="relative p-[3px] bg-gradient-to-tr from-orange-500 via-rose-500 to-amber-400 squircle mb-4">
-                    <div class="bg-black p-[2px] squircle overflow-hidden">
-                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover bg-neutral-900">
-                    </div>
-                </div>
-                <div class="px-10">
-                    <h1 class="text-2xl font-black tracking-tighter text-white uppercase" x-text="shopInfo.nom_boutique"></h1>
-                    <p class="text-[9px] text-neutral-500 mt-2 font-bold tracking-[0.2em] uppercase" x-text="shopInfo.bio"></p>
-                </div>
-            </header>
-        </div>
-
-        <main class="max-w-md mx-auto px-5 pt-8 pb-24">
-            <div class="grid grid-cols-2 gap-5">
-                <template x-for="product in displayProducts" :key="product.id">
-                    <div @click="openProduct(product)" class="relative rounded-[2.5rem] overflow-hidden bg-neutral-950 border border-white/5 cursor-pointer active:scale-95 transition-transform">
-                        <img :src="product.images[0]" class="aspect-square object-cover w-full opacity-90">
-                        <template x-if="product.is_pinned">
-                            <div class="absolute top-4 left-4 bg-orange-600 text-white px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">TOP</div>
-                        </template>
-                        <div class="absolute bottom-4 right-4 px-3 py-1.5 rounded-xl price-badge">
-                            <span class="text-[10px] font-black" x-text="formatPrice(product.prix)"></span>
-                        </div>
-                    </div>
-                </template>
+    <!-- VITRINE RÉELLE (S'affiche quand loading est faux) -->
+    <div x-show="!loading" x-cloak>
+        
+        <!-- MESSAGE SI RIEN N'EST TROUVÉ -->
+        <template x-if="!shopInfo.id">
+            <div class="max-w-md mx-auto h-screen flex flex-col items-center justify-center p-10 text-center">
+                <h1 class="text-xl font-black uppercase">Boutique introuvable</h1>
+                <p class="text-xs text-neutral-500 mt-4">Veuillez vérifier votre lien ou vous connecter.</p>
+                <a href="login.html" class="mt-8 bg-white text-black px-10 py-4 rounded-2xl font-black text-[10px] uppercase">Espace Marchand</a>
             </div>
-        </main>
+        </template>
+
+        <!-- CONTENU SI BOUTIQUE EXISTE -->
+        <template x-if="shopInfo.id">
+            <div>
+                <div class="sticky top-0 z-40 sticky-header">
+                    <header class="max-w-md mx-auto flex flex-col items-center py-8 text-center">
+                        <div class="relative p-[3px] bg-gradient-to-tr from-orange-500 via-rose-500 to-amber-400 squircle mb-4">
+                            <div class="bg-black p-[2px] squircle overflow-hidden">
+                                <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover bg-neutral-900">
+                            </div>
+                        </div>
+                        <div class="px-10">
+                            <h1 class="text-2xl font-black tracking-tighter text-white uppercase" x-text="shopInfo.nom_boutique"></h1>
+                            <p class="text-[9px] text-neutral-500 mt-2 font-bold tracking-[0.2em] uppercase" x-text="shopInfo.bio"></p>
+                        </div>
+                    </header>
+                </div>
+
+                <main class="max-w-md mx-auto px-5 pt-8 pb-24">
+                    <div class="grid grid-cols-2 gap-5">
+                        <template x-for="product in displayProducts" :key="product.id">
+                            <div @click="openProduct(product)" class="relative rounded-[2.5rem] overflow-hidden bg-neutral-950 border border-white/5 cursor-pointer active:scale-95 transition-transform">
+                                <img :src="productImage(product)" class="aspect-square object-cover w-full opacity-90">
+                                <div class="absolute bottom-4 right-4 px-3 py-1.5 rounded-xl bg-black/70 backdrop-blur-md border border-white/10">
+                                    <span class="text-[10px] font-black" x-text="formatPrice(product.prix)"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </main>
+            </div>
+        </template>
     </div>
 
-    <!-- 4. MODALE PRODUIT (Z-50) -->
+    <!-- MODALE PRODUIT -->
     <div x-show="modalOpen" class="fixed inset-0 z-50 bg-black flex flex-col" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-y-full" x-cloak>
         <div class="absolute top-6 right-6 z-[70]">
-            <button @click="modalOpen = false" class="p-4 bg-white/5 rounded-full border border-white/10 text-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+            <button @click="modalOpen = false" class="p-4 bg-white/5 rounded-full border border-white/10 text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
-        <div class="flex-1 overflow-y-auto no-scrollbar pb-40 text-left">
+        <div class="flex-1 overflow-y-auto no-scrollbar">
             <img :src="activeImage" class="w-full aspect-square object-cover">
             <div class="flex gap-4 px-6 -mt-12 relative z-10 overflow-x-auto no-scrollbar">
-                <template x-for="(img, index) in selectedProduct?.images" :key="index">
-                    <button @click="activeImage = img" :class="activeImage === img ? 'ring-2 ring-orange-500 scale-105 shadow-2xl' : 'opacity-40'" class="w-24 h-24 flex-shrink-0 bg-neutral-900 rounded-[1.8rem] overflow-hidden transition-all border border-white/5">
-                        <img :src="img" class="w-full h-full object-cover">
-                    </button>
+                <template x-for="img in productImages(selectedProduct)" :key="img">
+                    <button @click="activeImage = img" :class="activeImage === img ? 'ring-2 ring-orange-500 scale-105' : 'opacity-40'" class="w-24 h-24 flex-shrink-0 bg-neutral-900 rounded-[1.8rem] overflow-hidden transition-all border border-white/5"><img :src="img" class="w-full h-full object-cover"></button>
                 </template>
             </div>
             <div class="p-10">
                 <h2 class="text-4xl font-black tracking-tighter text-white uppercase" x-text="selectedProduct?.nom"></h2>
                 <div class="mt-4 text-2xl font-black text-orange-500" x-text="formatPrice(selectedProduct?.prix)"></div>
-                <div class="mt-10 space-y-10">
-                    <template x-if="selectedProduct?.tailles.length > 0">
-                        <div>
-                            <label class="text-[9px] font-black uppercase text-neutral-500 block mb-4">Tailles</label>
-                            <div class="flex flex-wrap gap-3">
-                                <template x-for="t in selectedProduct.tailles"><button @click="selectedSize = t" :class="selectedSize === t ? 'bg-white text-black' : 'bg-neutral-900 text-neutral-400'" class="px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase" x-text="t"></button></template>
-                            </div>
-                        </div>
-                    </template>
-                    <p class="text-neutral-400 text-sm leading-relaxed" x-text="selectedProduct?.description"></p>
-                </div>
+                <p class="mt-10 text-neutral-400 text-sm leading-relaxed" x-text="selectedProduct?.description"></p>
             </div>
         </div>
-        <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black to-transparent pb-10">
-            <button @click="sendWhatsApp()" class="w-full bg-[#25D366] text-white py-5 rounded-[2.5rem] font-black text-lg flex items-center justify-center gap-3 active:scale-95 transition-all uppercase">Commander</button>
-        </div>
+        <div class="p-6 bg-black/90 pb-10"><button @click="sendWhatsApp()" class="w-full bg-[#25D366] text-white py-5 rounded-[2.5rem] font-black text-lg uppercase">Commander</button></div>
     </div>
 
+    <!-- FOOTER NOIR ÉCLAIRÉ -->
+    <footer class="mt-20 border-t border-white/5 pt-16 pb-12 text-center bg-black">
+        <div class="flex justify-center gap-8 mb-12">
+            <a href="#" class="text-neutral-700 hover:text-white transition-all duration-500 hover:scale-110">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.266.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4zm6.406-11.845c.796 0 1.441.645 1.441 1.44s-.645 1.44-1.441 1.44c-.795 0-1.439-.645-1.439-1.44s.644-1.44 1.439-1.44z"/></svg>
+            </a>
+            <a href="#" class="text-neutral-700 hover:text-white transition-all duration-500 hover:scale-110">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.481 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.306 1.656zm6.29-4.463c1.589.941 3.277 1.438 5.002 1.439 5.305 0 9.622-4.317 9.625-9.623.002-2.571-1.002-4.986-2.826-6.81-1.825-1.825-4.237-2.83-6.809-2.831-5.306 0-9.623 4.317-9.626 9.625 0 1.769.463 3.493 1.339 5.011l-.872 3.186 3.257-.854-.09.054z"/></svg>
+            </a>
+        </div>
+
+        <div class="space-y-6">
+            <p class="text-[10px] font-black uppercase tracking-[0.5em] text-white" x-text="shopInfo.nom_boutique + ' • CATALOGUE'"></p>
+            <p class="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-600 px-12 leading-relaxed">
+                Qualité Premium Garantie • Livraison Express • Support WhatsApp 24/7
+            </p>
+        </div>
+
+        <div class="mt-16 pt-10 border-t border-white/[0.02]">
+            <p class="text-[7px] font-bold uppercase tracking-[0.6em] text-neutral-800">© 2024 TOUS DROITS RÉSERVÉS</p>
+            <a href="login.html" class="inline-block mt-8 opacity-10 hover:opacity-100 transition-opacity duration-700">
+                <div class="flex items-center gap-2 px-5 py-2 border border-white/10 rounded-full bg-white/[0.02]">
+                    <svg class="w-2.5 h-2.5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    <span class="text-[7px] font-black uppercase tracking-[0.2em] text-neutral-400">Merchant Access</span>
+                </div>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+        function shopApp() {
+            return {
+                sb: null,
+                loading: true,
+                modalOpen: false,
+                shopInfo: {},
+                displayProducts: [],
+                selectedProduct: null,
+                activeImage: '',
+                placeholderImage: "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='800' height='800'><rect width='100%' height='100%' fill='#111111'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#ffffff' font-family='Inter, Arial, sans-serif' font-size='48'>Produit</text></svg>"),
+                
+                async init() {
+                    const S_URL = "https://foainwlpbpbttqqzuina.supabase.co";
+                    const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
+                    
+                    try {
+                        this.sb = supabase.createClient(S_URL, S_KEY);
+                        let shopId = new URLSearchParams(window.location.search).get('id');
+                        
+                        // MODE SECOURS : Si pas d'ID, on utilise ton ID de démo
+                        if (!shopId) { shopId = "d5581e28-1033-40e1-8742-1234567890ab"; }
+
+                        const { data: shop } = await this.sb.from('boutiques').select('*').eq('id', shopId).single();
+                        if (shop) {
+                            this.shopInfo = shop;
+                            const { data: prods } = await this.sb.from('produits').select('*').eq('boutique_id', shopId);
+                            this.displayProducts = prods || [];
+                        }
+                    } catch (e) { console.error(e); } finally { this.loading = false; }
+                },
+
+                openProduct(p) {
+                    this.selectedProduct = p;
+                    this.activeImage = this.productImage(p);
+                    this.modalOpen = true;
+                },
+
+                productImage(product) {
+                    return this.productImages(product)[0];
+                },
+
+                productImages(product) {
+                    const images = (product?.images || []).filter((img) => typeof img === 'string' && img.trim().length > 0);
+                    return images.length ? images : [this.placeholderImage];
+                },
+
+                formatPrice(p) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p); },
+
+                async sendWhatsApp() {
+                    if (!this.shopInfo.whatsapp_number) {
+                        alert("Numéro WhatsApp manquant. Veuillez renseigner votre WhatsApp dans l'espace marchand.");
+                        return;
+                    }
+                    const text = `Bonjour ${this.shopInfo.nom_boutique}, je souhaite commander :\n\n🛍️ *${this.selectedProduct.nom}*\n💰 Prix : ${this.formatPrice(this.selectedProduct.prix)}\n\nLien : ${window.location.href}`;
+                    window.open(`https://wa.me/${this.shopInfo.whatsapp_number}?text=${encodeURIComponent(text)}`, '_blank');
+                }
+            }
+        }
+    </script>
 </body>
 </html>
