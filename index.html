@@ -3,52 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boutique Officielle | WhatsApp</title>
+    <title>Catalogue | Chargement...</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         [x-cloak] { display: none !important; }
         .squircle { border-radius: 28%; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-        .animate-shimmer { position: relative; overflow: hidden; background-color: #e2e8f0; }
-        .dark .animate-shimmer { background-color: #27272a; }
-        .animate-shimmer::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); animation: shimmer 1.5s infinite; }
-        .sticky-header { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background-color: rgba(249, 250, 251, 0.85); }
+        .sticky-header { backdrop-filter: blur(12px); background-color: rgba(255, 255, 255, 0.85); }
         .dark .sticky-header { background-color: rgba(9, 9, 11, 0.85); }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen">
+<body class="bg-gray-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen">
 
-    <!-- ÉCRAN CHARGEMENT / ERREUR -->
-    <template x-if="loading">
-        <div class="max-w-md mx-auto h-screen flex items-center justify-center">
-            <div class="w-12 h-12 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></div>
+    <!-- 1. ÉCRAN DE CHARGEMENT (S'affiche par défaut) -->
+    <div x-show="loading" class="fixed inset-0 flex items-center justify-center bg-white dark:bg-zinc-950 z-[100]">
+        <div class="flex flex-col items-center">
+            <div class="w-12 h-12 border-4 border-zinc-200 border-t-orange-500 rounded-full animate-spin"></div>
+            <p class="mt-4 text-xs font-bold text-zinc-400 animate-pulse">Chargement de la boutique...</p>
         </div>
-    </template>
+    </div>
 
-    <template x-if="!loading && !shopInfo.id">
-        <div class="max-w-md mx-auto h-screen flex flex-col items-center justify-center p-10 text-center">
-            <h1 class="text-xl font-black">Boutique introuvable</h1>
-            <p class="text-sm text-zinc-500 mt-2">Utilisez un lien valide avec un ID de boutique.</p>
-            <a href="login.html" class="mt-6 bg-black text-white px-6 py-2 rounded-xl text-sm">Espace Marchand</a>
+    <!-- 2. MESSAGE SI ERREUR OU ID MANQUANT -->
+    <div x-show="!loading && !shopInfo.id" x-cloak class="max-w-md mx-auto h-screen flex flex-col items-center justify-center p-10 text-center">
+        <div class="w-20 h-20 bg-zinc-200 dark:bg-zinc-800 squircle flex items-center justify-center mb-6">
+            <svg class="w-10 h-10 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
         </div>
-    </template>
+        <h1 class="text-xl font-black">Lien non valide</h1>
+        <p class="text-sm text-zinc-500 mt-2">Désolé, nous ne trouvons pas cette boutique. Assurez-vous d'utiliser le lien complet avec l'ID.</p>
+        <a href="login.html" class="mt-8 bg-zinc-900 dark:bg-white dark:text-black text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl">Espace Marchand</a>
+    </div>
 
-    <!-- CONTENU RÉEL -->
+    <!-- 3. LA VITRINE RÉELLE (S'affiche seulement si shopInfo.id existe) -->
     <div x-show="!loading && shopInfo.id" x-cloak>
         <div class="sticky top-0 z-40 sticky-header border-b border-zinc-200/50 dark:border-zinc-800/50">
             <header class="max-w-md mx-auto flex flex-col items-center py-6 text-center">
                 <div class="relative p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 squircle mb-3 shadow-lg">
                     <div class="bg-white dark:bg-zinc-950 p-[2px] squircle">
-                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover bg-zinc-100">
+                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover">
                     </div>
                 </div>
-                <h1 class="text-xl font-black tracking-tight text-zinc-900 dark:text-white" x-text="shopInfo.nom_boutique"></h1>
-                <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 px-10" x-text="shopInfo.bio"></p>
+                <h1 class="text-xl font-black tracking-tight" x-text="shopInfo.nom_boutique"></h1>
+                <p class="text-[11px] text-zinc-500 mt-1 px-10" x-text="shopInfo.bio"></p>
             </header>
         </div>
 
@@ -57,118 +53,63 @@
                 <template x-for="product in displayProducts" :key="product.id">
                     <div @click="openProduct(product)" class="relative rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 shadow-sm cursor-pointer active:scale-95 transition-transform">
                         <img :src="product.images[0]" class="aspect-square object-cover w-full">
-                        <template x-if="product.is_pinned">
-                            <div class="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase">⭐ TOP</div>
-                        </template>
-                        <div class="absolute bottom-2 right-2 px-2 py-1 rounded-lg glass border border-white/20">
+                        <div class="absolute bottom-2 right-2 px-2 py-1 rounded-lg bg-white/80 dark:bg-black/80 backdrop-blur-sm">
                             <span class="text-[10px] font-bold" x-text="formatPrice(product.prix)"></span>
                         </div>
                     </div>
                 </template>
             </div>
-
-            <footer class="mt-16 text-center">
-                <p class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400" x-text="shopInfo.nom_boutique + ' © 2024'"></p>
-                <div class="mt-4 opacity-20 hover:opacity-100 transition-opacity">
-                    <a href="login.html" class="text-[10px] flex items-center justify-center gap-1">🔒 Admin</a>
-                </div>
-            </footer>
         </main>
     </div>
 
-    <!-- MODALE PRODUIT -->
-    <div x-show="modalOpen" class="fixed inset-0 z-50 bg-white dark:bg-zinc-950 flex flex-col" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-y-full" x-cloak>
-        <div class="absolute top-4 right-4 z-[70]">
-            <button @click="modalOpen = false" class="p-3 bg-black/10 dark:bg-white/10 rounded-full backdrop-blur-md">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-        <div class="flex-1 overflow-y-auto no-scrollbar pb-40">
-            <img :src="activeImage" class="w-full aspect-square object-cover">
-            <div class="flex gap-3 px-6 -mt-10 relative z-10 overflow-x-auto no-scrollbar">
-                <template x-for="img in selectedProduct?.images">
-                    <button @click="activeImage = img" :class="activeImage === img ? 'ring-4 ring-orange-500 scale-105 shadow-xl' : ''" class="w-20 h-20 flex-shrink-0 bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden transition-all">
-                        <img :src="img" class="w-full h-full object-cover">
-                    </button>
-                </template>
-            </div>
-            <div class="p-6 pt-12">
-                <div class="flex justify-between items-start mb-6">
-                    <h2 class="text-2xl font-black" x-text="selectedProduct?.nom"></h2>
-                    <div class="text-right">
-                        <div class="text-2xl font-black text-orange-500" x-text="formatPrice(selectedProduct?.prix)"></div>
-                    </div>
-                </div>
-                <div class="space-y-6">
-                    <template x-if="selectedProduct?.tailles.length > 0">
-                        <div>
-                            <span class="text-[10px] font-black uppercase text-zinc-400">Tailles</span>
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                <template x-for="t in selectedProduct.tailles">
-                                    <button @click="selectedSize = t" :class="selectedSize === t ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-zinc-100 dark:bg-zinc-800'" class="px-5 py-2 rounded-xl text-sm font-bold transition-all" x-text="t"></button>
-                                </template>
-                            </div>
-                        </div>
-                    </template>
-                    <p class="text-zinc-500 text-sm leading-relaxed" x-text="selectedProduct?.description"></p>
-                </div>
-            </div>
-        </div>
-        <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white dark:from-zinc-950 dark:via-zinc-950 to-transparent pb-10">
-            <button @click="sendWhatsApp()" class="w-full bg-[#25D366] text-white py-5 rounded-[2rem] font-bold text-lg flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all">Commander sur WhatsApp</button>
-        </div>
-    </div>
-
+    <!-- SCRIPT -->
     <script>
-        const SUPABASE_URL = "https://foainwlpbpbttqqzuina.supabase.co";
+        // === REMPLACE BIEN CES DEUX LIGNES AVEC TES CLÉS ===
+        const SUPABASE_URL = "https://foainwlpbpbttqqzuina.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // Initialisation sécurisée
+        let supabase;
+        try {
+            supabase = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+        } catch(e) { console.error("Erreur Init Supabase:", e); }
 
         function shopApp() {
             return {
-                loading: true, darkMode: false, modalOpen: false, selectedProduct: null, activeImage: '', selectedSize: null, displayProducts: [], shopInfo: {},
+                loading: true, darkMode: false, shopInfo: {}, displayProducts: [], modalOpen: false,
+                
                 async init() {
+                    // Sécurité : si au bout de 5 secondes ça charge toujours, on arrête
+                    setTimeout(() => { if(this.loading) this.loading = false; }, 5000);
+
                     if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
+                    
                     const urlParams = new URLSearchParams(window.location.search);
                     const shopId = urlParams.get('id');
-                    if (!shopId) { this.loading = false; return; }
-                    await this.loadData(shopId);
-                    this.loading = false;
-                },
-                async loadData(shopId) {
+
+                    if (!shopId || !supabase) {
+                        this.loading = false;
+                        return;
+                    }
+
                     try {
-                        const { data: shop } = await supabase.from('boutiques').select('*').eq('id', shopId).single();
+                        // Charger Boutique
+                        const { data: shop, error: shopErr } = await supabase.from('boutiques').select('*').eq('id', shopId).single();
                         if (shop) {
                             this.shopInfo = shop;
+                            document.title = shop.nom_boutique + " | Catalogue";
+                            
+                            // Charger Produits
                             const { data: prods } = await supabase.from('produits').select('*').eq('boutique_id', shopId);
-                            if (prods) {
-                                let pinned = prods.filter(p => p.is_pinned);
-                                let others = prods.filter(p => !p.is_pinned).sort(() => Math.random() - 0.5);
-                                this.displayProducts = [...pinned, ...others];
-                            }
-                            await supabase.from('statistiques').insert([{ boutique_id: shopId, action_type: 'vue', source: this.getSource() }]);
+                            if (prods) this.displayProducts = prods;
                         }
-                    } catch (e) { console.error(e); }
+                    } catch (e) {
+                        console.error("Erreur de chargement des données:", e);
+                    } finally {
+                        this.loading = false;
+                    }
                 },
-                getSource() {
-                    const r = document.referrer;
-                    if (r.includes('facebook')) return 'facebook';
-                    if (r.includes('instagram')) return 'instagram';
-                    if (r.includes('whatsapp') || r.includes('wa.me')) return 'whatsapp';
-                    return 'direct';
-                },
-                formatPrice(p) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p); },
-                openProduct(p) {
-                    this.selectedProduct = p;
-                    this.activeImage = p.images[0];
-                    this.selectedSize = p.tailles[0];
-                    this.modalOpen = true;
-                },
-                async sendWhatsApp() {
-                    await supabase.from('statistiques').insert([{ boutique_id: this.shopInfo.id, produit_id: this.selectedProduct.id, action_type: 'clic_wa', source: 'direct' }]);
-                    const text = `Bonjour ${this.shopInfo.nom_boutique}, je souhaite commander :\n\n🛍️ *${this.selectedProduct.nom}*\n💰 Prix : ${this.formatPrice(this.selectedProduct.prix)}\n📏 Taille : ${this.selectedSize || 'Unique'}\n\nLien : ${window.location.href}`;
-                    window.open(`https://wa.me/${this.shopInfo.whatsapp_number}?text=${encodeURIComponent(text)}`, '_blank');
-                }
+                formatPrice(p) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p); }
             }
         }
     </script>
