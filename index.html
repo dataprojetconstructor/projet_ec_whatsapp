@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<html lang="fr" x-data="shopApp()" :class="{ 'dark': darkMode }">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalogue | Chargement...</title>
+    <title>Boutique Officielle</title>
+    <!-- 1. CHARGEMENT DES BIBLIOTHÈQUES -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Alpine.js doit être chargé APRÈS notre script de données ou avec defer -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
         [x-cloak] { display: none !important; }
         .squircle { border-radius: 28%; }
@@ -14,33 +17,30 @@
         .dark .sticky-header { background-color: rgba(9, 9, 11, 0.85); }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen">
+<body x-data="shopApp()" class="bg-gray-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen">
 
-    <!-- 1. ÉCRAN DE CHARGEMENT (S'affiche par défaut) -->
+    <!-- ÉCRAN DE CHARGEMENT -->
     <div x-show="loading" class="fixed inset-0 flex items-center justify-center bg-white dark:bg-zinc-950 z-[100]">
         <div class="flex flex-col items-center">
             <div class="w-12 h-12 border-4 border-zinc-200 border-t-orange-500 rounded-full animate-spin"></div>
-            <p class="mt-4 text-xs font-bold text-zinc-400 animate-pulse">Chargement de la boutique...</p>
+            <p class="mt-4 text-xs font-bold text-zinc-400">Chargement...</p>
         </div>
     </div>
 
-    <!-- 2. MESSAGE SI ERREUR OU ID MANQUANT -->
+    <!-- BOUTIQUE INTROUVABLE -->
     <div x-show="!loading && !shopInfo.id" x-cloak class="max-w-md mx-auto h-screen flex flex-col items-center justify-center p-10 text-center">
-        <div class="w-20 h-20 bg-zinc-200 dark:bg-zinc-800 squircle flex items-center justify-center mb-6">
-            <svg class="w-10 h-10 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-        </div>
-        <h1 class="text-xl font-black">Lien non valide</h1>
-        <p class="text-sm text-zinc-500 mt-2">Désolé, nous ne trouvons pas cette boutique. Assurez-vous d'utiliser le lien complet avec l'ID.</p>
-        <a href="login.html" class="mt-8 bg-zinc-900 dark:bg-white dark:text-black text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl">Espace Marchand</a>
+        <h1 class="text-xl font-black">Boutique introuvable</h1>
+        <p class="text-sm text-zinc-500 mt-2">Vérifiez le lien (ID manquant dans l'URL).</p>
+        <a href="login.html" class="mt-8 bg-black text-white px-8 py-3 rounded-2xl font-bold text-sm">Espace Marchand</a>
     </div>
 
-    <!-- 3. LA VITRINE RÉELLE (S'affiche seulement si shopInfo.id existe) -->
+    <!-- VITRINE RÉELLE -->
     <div x-show="!loading && shopInfo.id" x-cloak>
         <div class="sticky top-0 z-40 sticky-header border-b border-zinc-200/50 dark:border-zinc-800/50">
             <header class="max-w-md mx-auto flex flex-col items-center py-6 text-center">
                 <div class="relative p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 squircle mb-3 shadow-lg">
                     <div class="bg-white dark:bg-zinc-950 p-[2px] squircle">
-                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover">
+                        <img :src="shopInfo.logo_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+shopInfo.id" class="w-20 h-20 squircle object-cover bg-zinc-100">
                     </div>
                 </div>
                 <h1 class="text-xl font-black tracking-tight" x-text="shopInfo.nom_boutique"></h1>
@@ -48,13 +48,13 @@
             </header>
         </div>
 
-        <main class="max-w-md mx-auto px-4 pt-6 pb-20">
+        <main class="max-w-md mx-auto px-4 pt-6 pb-20 text-center">
             <div class="grid grid-cols-2 gap-3">
                 <template x-for="product in displayProducts" :key="product.id">
-                    <div @click="openProduct(product)" class="relative rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 shadow-sm cursor-pointer active:scale-95 transition-transform">
+                    <div class="relative rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-800">
                         <img :src="product.images[0]" class="aspect-square object-cover w-full">
-                        <div class="absolute bottom-2 right-2 px-2 py-1 rounded-lg bg-white/80 dark:bg-black/80 backdrop-blur-sm">
-                            <span class="text-[10px] font-bold" x-text="formatPrice(product.prix)"></span>
+                        <div class="p-2">
+                            <p class="text-[10px] font-bold" x-text="formatPrice(product.prix)"></p>
                         </div>
                     </div>
                 </template>
@@ -62,54 +62,60 @@
         </main>
     </div>
 
-    <!-- SCRIPT -->
+    <!-- SCRIPT DE LOGIQUE -->
     <script>
-        // === REMPLACE BIEN CES DEUX LIGNES AVEC TES CLÉS ===
-        const SUPABASE_URL = "https://foainwlpbpbttqqzuina.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
-        
-        // Initialisation sécurisée
-        let supabase;
-        try {
-            supabase = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-        } catch(e) { console.error("Erreur Init Supabase:", e); }
+        // 1. Tes clés Supabase (À REMPLIR)
+        const S_URL = "https://VOTRE_PROJET.supabase.co";
+        const S_KEY = "VOTRE_CLE_ANON";
+
+        // 2. Initialisation du client (on change le nom en 'sb' pour éviter les erreurs)
+        const sb = supabase.createClient(S_URL, S_KEY);
 
         function shopApp() {
             return {
-                loading: true, darkMode: false, shopInfo: {}, displayProducts: [], modalOpen: false,
-                
+                loading: true,
+                darkMode: false,
+                shopInfo: { id: null },
+                displayProducts: [],
+
                 async init() {
-                    // Sécurité : si au bout de 5 secondes ça charge toujours, on arrête
-                    setTimeout(() => { if(this.loading) this.loading = false; }, 5000);
-
-                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
+                    console.log("Démarrage du script...");
                     
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const shopId = urlParams.get('id');
+                    // Détection du mode sombre
+                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
 
-                    if (!shopId || !supabase) {
+                    // Récupération de l'ID marchand dans l'URL (?id=...)
+                    const params = new URLSearchParams(window.location.search);
+                    const shopId = params.get('id');
+
+                    if (!shopId) {
+                        console.error("ID manquant dans l'URL");
                         this.loading = false;
                         return;
                     }
 
                     try {
-                        // Charger Boutique
-                        const { data: shop, error: shopErr } = await supabase.from('boutiques').select('*').eq('id', shopId).single();
+                        // Charger les infos de la boutique
+                        const { data: shop, error: shopErr } = await sb.from('boutiques').select('*').eq('id', shopId).single();
+                        
                         if (shop) {
                             this.shopInfo = shop;
-                            document.title = shop.nom_boutique + " | Catalogue";
-                            
-                            // Charger Produits
-                            const { data: prods } = await supabase.from('produits').select('*').eq('boutique_id', shopId);
-                            if (prods) this.displayProducts = prods;
+                            // Charger les produits
+                            const { data: prods } = await sb.from('produits').select('*').eq('boutique_id', shopId);
+                            this.displayProducts = prods || [];
+                        } else {
+                            console.warn("Boutique non trouvée dans la base de données");
                         }
-                    } catch (e) {
-                        console.error("Erreur de chargement des données:", e);
+                    } catch (err) {
+                        console.error("Erreur technique:", err);
                     } finally {
                         this.loading = false;
                     }
                 },
-                formatPrice(p) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p); }
+
+                formatPrice(p) {
+                    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p);
+                }
             }
         }
     </script>
