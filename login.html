@@ -10,31 +10,43 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
+        /* Police Inter - Droite et Grasse */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #000000; }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #000000; 
+            color: white;
+        }
+
         [x-cloak] { display: none !important; }
+        
+        /* Squircle Premium */
         .squircle { border-radius: 28%; }
         
-        /* Input Style Noir Éclairé */
+        /* Inputs Noir Éclairé */
         .admin-input {
-            background-color: #0a0a0a;
+            background-color: #050505;
             border: 1px solid rgba(255, 255, 255, 0.05);
             color: white;
             transition: all 0.3s ease;
         }
         .admin-input:focus {
             border-color: rgba(255, 255, 255, 0.2);
-            background-color: #0f0f0f;
+            background-color: #0a0a0a;
             outline: none;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.02);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.02);
         }
         
-        /* Card Style */
+        /* Carte avec bordures lumineuses très subtiles */
         .login-card {
-            background-color: #050505;
+            background-color: #020202;
             border: 1px solid rgba(255, 255, 255, 0.03);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8);
         }
+
+        /* Désactiver l'italique partout */
+        * { font-style: normal !important; }
     </style>
 
     <!-- 2. LOGIQUE DE SÉCURITÉ -->
@@ -42,20 +54,20 @@
         function authApp() {
             return {
                 sb: null,
-                mode: 'login',
+                mode: 'login', // 'login' ou 'register'
                 loading: false,
                 msg: '',
                 form: { email: '', password: '', shopName: '', phone: '' },
 
                 init() {
-                    // Tes vraies clés (Publishable Key uniquement)
+                    // Tes vraies clés configurées
                     const S_URL = "https://foainwlpbpbttqqzuina.supabase.co";
                     const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
                     
                     try {
                         this.sb = supabase.createClient(S_URL, S_KEY);
                     } catch (e) {
-                        this.msg = "Erreur de connexion au serveur de sécurité.";
+                        console.error("Erreur d'initialisation");
                     }
                 },
 
@@ -66,42 +78,46 @@
 
                     try {
                         if (this.mode === 'register') {
-                            // Sécurité : Vérification locale avant envoi
-                            if (this.form.password.length < 6) throw new Error("Le mot de passe doit faire au moins 6 caractères.");
-                            if (!this.form.shopName) throw new Error("Le nom de la boutique est requis.");
+                            // Sécurité : Vérification locale
+                            if (this.form.password.length < 6) throw new Error("MOT DE PASSE TROP COURT (MIN 6)");
 
-                            // 1. Inscription
+                            // 1. Création du compte utilisateur
                             const { data, error } = await this.sb.auth.signUp({
                                 email: this.form.email,
                                 password: this.form.password,
                             });
                             if (error) throw error;
 
-                            // 2. Création du profil boutique lié à l'ID utilisateur
+                            // 2. Création automatique du profil boutique
                             if (data.user) {
+                                // Petit délai pour garantir que la session est reconnue par Supabase
+                                await new Promise(res => setTimeout(res, 800));
+
                                 const { error: shopError } = await this.sb.from('boutiques').insert([{
                                     id: data.user.id,
-                                    nom_boutique: this.form.shopName,
+                                    nom_boutique: this.form.shopName.toUpperCase(),
                                     whatsapp_number: this.form.phone,
-                                    bio: 'Ma boutique premium'
+                                    bio: 'BOUTIQUE PREMIUM • CATALOGUE OFFICIEL'
                                 }]);
+                                
                                 if (shopError) throw shopError;
                             }
-                            this.msg = "Compte créé ! Veuillez vous connecter.";
+                            
+                            this.msg = "BOUTIQUE CRÉÉE ! CONNECTEZ-VOUS.";
                             this.mode = 'login';
                         } else {
-                            // Connexion
+                            // Connexion sécurisée
                             const { error } = await this.sb.auth.signInWithPassword({
                                 email: this.form.email,
                                 password: this.form.password,
                             });
                             if (error) throw error;
                             
-                            // Redirection sécurisée
+                            // Redirection vers le dashboard
                             window.location.href = "dashboard.html";
                         }
                     } catch (e) {
-                        this.msg = e.message;
+                        this.msg = e.message.toUpperCase();
                     } finally {
                         this.loading = false;
                     }
@@ -109,54 +125,68 @@
             }
         }
     </script>
+    <!-- Alpine.js chargé en dernier pour garantir que authApp existe -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body x-data="authApp()" class="flex items-center justify-center min-h-screen p-6 overflow-hidden text-white">
+<body x-data="authApp()" class="flex items-center justify-center min-h-screen p-6 relative overflow-hidden">
 
-    <!-- FOND ÉCLAIRÉ (DÉGRADÉ SUBTIL) -->
-    <div class="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(20,20,20,1)_0%,rgba(0,0,0,1)_100%)] z-0"></div>
+    <!-- LUEUR DE FOND -->
+    <div class="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(15,15,15,1)_0%,rgba(0,0,0,1)_100%)] z-0"></div>
 
-    <div class="max-w-md w-full login-card rounded-[3rem] p-10 z-10 relative">
+    <div class="max-w-md w-full login-card rounded-[2.5rem] p-10 z-10 relative">
         
-        <!-- HEADER -->
+        <!-- LOGO SQUIRCLE ÉCLAIRÉ -->
         <div class="text-center mb-12">
-            <!-- Squircle Logo Logo Source de Lumière -->
-            <div class="w-20 h-20 bg-gradient-to-tr from-orange-600 via-rose-600 to-amber-400 squircle mx-auto flex items-center justify-center shadow-[0_0_30px_rgba(234,88,12,0.2)] mb-6">
+            <div class="w-20 h-20 bg-gradient-to-tr from-orange-600 via-rose-600 to-yellow-500 squircle mx-auto flex items-center justify-center shadow-[0_0_40px_rgba(234,88,12,0.2)] mb-8">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                 </svg>
             </div>
             <h1 class="text-3xl font-black tracking-tighter uppercase" x-text="mode === 'login' ? 'Connexion' : 'Inscription'"></h1>
-            <p class="text-[10px] font-bold text-neutral-500 mt-2 tracking-[0.2em] uppercase" x-text="mode === 'login' ? 'Accès Marchand Sécurisé' : 'Rejoindre la plateforme'"></p>
+            <p class="text-[9px] font-black text-neutral-600 mt-3 tracking-[0.3em] uppercase">Panel Administration</p>
         </div>
 
         <!-- FORMULAIRE -->
         <form @submit.prevent="handleAuth" class="space-y-4">
             
             <template x-if="mode === 'register'">
-                <div class="space-y-4 animate-in fade-in duration-500">
-                    <input type="text" x-model="form.shopName" placeholder="NOM DE LA BOUTIQUE" class="w-full admin-input rounded-2xl px-6 py-4 text-xs font-bold tracking-widest uppercase">
-                    <input type="tel" x-model="form.phone" placeholder="NUMÉRO WHATSAPP" class="w-full admin-input rounded-2xl px-6 py-4 text-xs font-bold tracking-widest uppercase">
+                <div class="space-y-4 animate-in slide-in-from-bottom duration-500">
+                    <div>
+                        <label class="text-[9px] font-black text-neutral-500 uppercase tracking-widest ml-4 mb-2 block">Nom Boutique</label>
+                        <input type="text" x-model="form.shopName" placeholder="EX: LUXSTORE PARIS" class="w-full admin-input rounded-2xl px-6 py-4 text-[11px] font-black tracking-widest uppercase">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-neutral-500 uppercase tracking-widest ml-4 mb-2 block">WhatsApp</label>
+                        <input type="tel" x-model="form.phone" placeholder="EX: 22500000000" class="w-full admin-input rounded-2xl px-6 py-4 text-[11px] font-black tracking-widest uppercase">
+                    </div>
                 </div>
             </template>
 
-            <input type="email" x-model="form.email" placeholder="ADRESSE EMAIL" required class="w-full admin-input rounded-2xl px-6 py-4 text-xs font-bold tracking-widest uppercase">
-            <input type="password" x-model="form.password" placeholder="MOT DE PASSE" required class="w-full admin-input rounded-2xl px-6 py-4 text-xs font-bold tracking-widest uppercase">
+            <div>
+                <label class="text-[9px] font-black text-neutral-500 uppercase tracking-widest ml-4 mb-2 block">Email</label>
+                <input type="email" x-model="form.email" placeholder="ADRESSE@EMAIL.COM" required class="w-full admin-input rounded-2xl px-6 py-4 text-[11px] font-black tracking-widest uppercase">
+            </div>
 
-            <!-- MESSAGE D'ERREUR -->
-            <div x-show="msg" x-cloak x-transition class="bg-red-900/20 border border-red-900/50 text-red-500 text-[10px] font-black uppercase p-4 rounded-2xl tracking-widest text-center">
+            <div>
+                <label class="text-[9px] font-black text-neutral-500 uppercase tracking-widest ml-4 mb-2 block">Mot de passe</label>
+                <input type="password" x-model="form.password" placeholder="••••••••" required class="w-full admin-input rounded-2xl px-6 py-4 text-[11px] font-black tracking-widest uppercase">
+            </div>
+
+            <!-- MESSAGES D'ALERTE -->
+            <div x-show="msg" x-cloak x-transition class="bg-red-900/10 border border-red-900/30 text-red-500 text-[9px] font-black uppercase p-4 rounded-2xl tracking-[0.1em] text-center">
                 <span x-text="msg"></span>
             </div>
 
-            <button type="submit" :disabled="loading" class="w-full bg-white text-black py-5 rounded-[2rem] font-black text-xs tracking-[0.2em] uppercase active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] disabled:opacity-50">
-                <span x-show="!loading" x-text="mode === 'login' ? 'Entrer dans le Dashboard' : 'Créer mon compte'"></span>
-                <span x-show="loading" x-cloak>Vérification en cours...</span>
+            <!-- BOUTON D'ACTION -->
+            <button type="submit" :disabled="loading" class="w-full bg-white text-black py-5 rounded-[2rem] font-black text-xs tracking-[0.2em] uppercase active:scale-95 transition-all shadow-[0_10px_40px_rgba(255,255,255,0.1)] disabled:opacity-50 mt-4">
+                <span x-show="!loading" x-text="mode === 'login' ? 'Accéder au Dashboard' : 'Lancer ma boutique'"></span>
+                <span x-show="loading" x-cloak>Vérification...</span>
             </button>
         </form>
 
         <!-- SWITCH MODE -->
-        <button @click="mode = (mode === 'login' ? 'register' : 'login'); msg = ''" class="w-full mt-10 text-[9px] font-black text-neutral-600 hover:text-white transition-colors uppercase tracking-[0.2em]">
-            <span x-text="mode === 'login' ? 'Pas encore de compte ? S\'inscrire' : 'Déjà un compte ? Se connecter'"></span>
+        <button @click="mode = (mode === 'login' ? 'register' : 'login'); msg = ''" class="w-full mt-10 text-[9px] font-black text-neutral-700 hover:text-neutral-400 transition-colors uppercase tracking-[0.2em]">
+            <span x-text="mode === 'login' ? 'Pas encore de boutique ? S\'inscrire' : 'Déjà un compte ? Se connecter'"></span>
         </button>
 
     </div>
