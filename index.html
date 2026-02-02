@@ -52,71 +52,63 @@
     </div>
 
     <!-- 2. LOGIQUE JAVASCRIPT -->
-    <script>
-        // === REMPLACE BIEN CES DEUX LIGNES AVEC TES CLÉS ===
-        const S_URL = "https://foainwlpbpbttqqzuina.supabase.co"; 
-        const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
-        
-        // Initialisation du client (on utilise 'sb' pour éviter les conflits)
-        const sb = supabase.createClient(S_URL, S_KEY);
+   <script>
+    function shopApp() {
+        return {
+            sb: null,
+            loading: true,
+            darkMode: false,
+            shopInfo: { id: null },
+            displayProducts: [],
 
-        function authApp() {
-            return {
-                mode: 'login', // 'login' ou 'register'
-                loading: false,
-                msg: '',
-                form: {
-                    email: '',
-                    password: '',
-                    shopName: '',
-                    phone: ''
-                },
+            async init() {
+                // 1. VOS CLÉS SUPABASE (À copier depuis Settings > API)
+                const S_URL = "https://foainwlpbpbttqqzuina.supabase.co"; // DOIT commencer par https://
+                const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
 
-                async handleAuth() {
-                    this.loading = true;
-                    this.msg = '';
-
-                    try {
-                        if (this.mode === 'register') {
-                            // 1. Inscription Auth
-                            const { data, error } = await sb.auth.signUp({
-                                email: this.form.email,
-                                password: this.form.password,
-                            });
-                            if (error) throw error;
-
-                            // 2. Création de la boutique dans la table
-                            if (data.user) {
-                                const { error: shopError } = await sb.from('boutiques').insert([{
-                                    id: data.user.id,
-                                    nom_boutique: this.form.shopName,
-                                    whatsapp_number: this.form.phone,
-                                    bio: 'Bienvenue dans ma boutique !'
-                                }]);
-                                if (shopError) throw shopError;
-                            }
-                            this.msg = "Compte créé ! Connectez-vous maintenant.";
-                            this.mode = 'login';
-
-                        } else {
-                            // Connexion
-                            const { error } = await sb.auth.signInWithPassword({
-                                email: this.form.email,
-                                password: this.form.password,
-                            });
-                            if (error) throw error;
-
-                            // Succès -> Vers le dashboard
-                            window.location.href = "dashboard.html";
-                        }
-                    } catch (e) {
-                        this.msg = "Erreur : " + e.message;
-                    } finally {
-                        this.loading = false;
-                    }
+                // 2. Vérification de sécurité pour éviter l'écran noir
+                if (S_URL.includes("TA_URL") || S_URL === "") {
+                    console.error("ERREUR : Vous devez configurer vos clés Supabase.");
+                    this.loading = false;
+                    return;
                 }
+
+                try {
+                    // Initialisation du client
+                    this.sb = supabase.createClient(S_URL, S_KEY);
+                    
+                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) this.darkMode = true;
+
+                    // Récupération de l'ID marchand dans l'URL
+                    const params = new URLSearchParams(window.location.search);
+                    const shopId = params.get('id');
+
+                    if (!shopId) {
+                        console.warn("ID manquant dans l'URL. Essayez d'ajouter ?id=VOTRE_ID");
+                        this.loading = false;
+                        return;
+                    }
+
+                    // Charger les données
+                    const { data: shop, error: shopErr } = await this.sb.from('boutiques').select('*').eq('id', shopId).single();
+                    
+                    if (shop) {
+                        this.shopInfo = shop;
+                        const { data: prods } = await this.sb.from('produits').select('*').eq('boutique_id', shopId);
+                        this.displayProducts = prods || [];
+                    }
+                } catch (err) {
+                    console.error("Erreur technique de connexion :", err);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            formatPrice(p) {
+                return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(p);
             }
         }
-    </script>
+    }
+</script>
 </body>
 </html>
