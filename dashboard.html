@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html lang="fr" x-data="dashboardApp()">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | LuxStore</title>
+    <title>Dashboard | Gestion</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak] { display: none !important; }</style>
 </head>
-<body class="bg-gray-50 min-h-screen pb-20">
+<body x-data="dashboardApp()" class="bg-gray-50 min-h-screen pb-20">
+
     <nav class="bg-white border-b p-6 flex justify-between items-center sticky top-0 z-10">
         <h1 class="font-black text-xl">Mon Dashboard</h1>
         <button @click="logout" class="text-zinc-400 font-bold text-xs">Déconnexion</button>
@@ -27,24 +29,16 @@
             </div>
         </div>
 
-        <!-- LIEN BOUTIQUE -->
-        <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex justify-between items-center">
-            <div class="text-[10px] font-bold text-blue-600 truncate mr-2" x-text="shopLink"></div>
-            <button @click="copyLink" class="bg-blue-600 text-white text-[10px] px-3 py-1 rounded-lg font-bold">Copier</button>
-        </div>
-
-        <!-- PRODUITS -->
-        <h2 class="text-[10px] font-black uppercase text-zinc-400 tracking-widest mt-10">Mes Articles</h2>
+        <!-- LISTE PRODUITS -->
         <div class="space-y-3">
             <template x-for="p in products" :key="p.id">
                 <div class="bg-white p-3 rounded-2xl flex items-center gap-4 border shadow-sm">
-                    <img :src="p.images[0]" class="w-12 h-12 rounded-xl object-cover">
+                    <img :src="p.images[0]" class="w-12 h-12 rounded-xl object-cover bg-gray-100">
                     <div class="flex-1">
                         <h3 class="text-sm font-bold truncate" x-text="p.nom"></h3>
                         <p class="text-xs text-zinc-400" x-text="p.prix + ' XOF'"></p>
                     </div>
-                    <button @click="togglePin(p)" :class="p.is_pinned ? 'text-orange-500' : 'text-zinc-200'">⭐</button>
-                    <button @click="delProd(p.id)" class="text-zinc-200">🗑️</button>
+                    <button @click="delProd(p.id)" class="text-red-400">🗑️</button>
                 </div>
             </template>
         </div>
@@ -54,63 +48,73 @@
     <button @click="showAdd = true" class="fixed bottom-6 right-6 bg-black text-white p-5 rounded-[2rem] shadow-2xl">+</button>
 
     <!-- MODALE AJOUT -->
-    <div x-show="showAdd" class="fixed inset-0 bg-white z-50 p-6 overflow-y-auto" x-cloak>
+    <div x-show="showAdd" x-cloak class="fixed inset-0 bg-white z-50 p-6 overflow-y-auto">
         <div class="flex justify-between items-center mb-10">
-            <h2 class="text-2xl font-black">Nouvel Article</h2>
-            <button @click="showAdd = false" class="text-zinc-400 font-bold">Fermer</button>
+            <h2 class="text-2xl font-black">Nouveau Produit</h2>
+            <button @click="showAdd = false" class="text-zinc-400">Fermer</button>
         </div>
         <form @submit.prevent="addProd" class="space-y-4">
             <input type="file" @change="files = Array.from($event.target.files)" multiple class="text-xs">
-            <input type="text" x-model="form.nom" placeholder="Nom" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
-            <textarea x-model="form.desc" placeholder="Description" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required></textarea>
-            <input type="number" x-model="form.prix" placeholder="Prix" class="w-full p-4 bg-gray-50 rounded-2xl outline-none" required>
-            <input type="text" x-model="form.sizes" placeholder="Tailles (ex: M, L, XL)" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
-            <button type="submit" :disabled="up" class="w-full bg-black text-white py-5 rounded-2xl font-bold" x-text="up ? 'Chargement...' : 'Ajouter'"></button>
+            <input type="text" x-model="form.nom" placeholder="Nom" class="w-full p-4 bg-gray-100 rounded-2xl outline-none" required>
+            <textarea x-model="form.desc" placeholder="Description" class="w-full p-4 bg-gray-100 rounded-2xl outline-none"></textarea>
+            <input type="number" x-model="form.prix" placeholder="Prix" class="w-full p-4 bg-gray-100 rounded-2xl outline-none" required>
+            <button type="submit" :disabled="up" class="w-full bg-black text-white py-5 rounded-2xl font-bold">
+                <span x-text="up ? 'Chargement...' : 'Ajouter'"></span>
+            </button>
         </form>
     </div>
 
     <script>
-        const SUPABASE_URL = "https://foainwlpbpbttqqzuina.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         function dashboardApp() {
             return {
-                user: null, products: [], stats: { views: 0, clicks: 0 }, shopLink: '', showAdd: false, up: false,
-                form: { nom: '', desc: '', prix: '', sizes: '' }, files: [],
+                sb: null, user: null, products: [], stats: { views: 0, clicks: 0 },
+                showAdd: false, up: false, files: [],
+                form: { nom: '', desc: '', prix: '' },
+
                 async init() {
-                    const { data: { session } } = await supabase.auth.getSession();
+                    const S_URL = "https://foainwlpbpbttqqzuina.supabase.co";
+                    const S_KEY = "sb_publishable_Zg_FjHfW5v4m-yiI8FQNYA_oMtpCq2d";
+                    this.sb = supabase.createClient(S_URL, S_KEY);
+
+                    const { data: { session } } = await this.sb.auth.getSession();
                     if (!session) { window.location.href = "login.html"; return; }
                     this.user = session.user;
-                    this.shopLink = window.location.origin + window.location.pathname.replace('dashboard.html', 'index.html') + '?id=' + this.user.id;
                     this.fetch();
                 },
+
                 async fetch() {
-                    const { data: ps } = await supabase.from('produits').select('*').eq('boutique_id', this.user.id).order('created_at', { ascending: false });
+                    const { data: ps } = await this.sb.from('produits').select('*').eq('boutique_id', this.user.id).order('created_at', { ascending: false });
                     this.products = ps || [];
-                    const { count: v } = await supabase.from('statistiques').select('*', { count: 'exact', head: true }).eq('boutique_id', this.user.id).eq('action_type', 'vue');
-                    const { count: c } = await supabase.from('statistiques').select('*', { count: 'exact', head: true }).eq('boutique_id', this.user.id).eq('action_type', 'clic_wa');
+                    
+                    const { count: v } = await this.sb.from('statistiques').select('*', { count: 'exact', head: true }).eq('boutique_id', this.user.id).eq('action_type', 'vue');
+                    const { count: c } = await this.sb.from('statistiques').select('*', { count: 'exact', head: true }).eq('boutique_id', this.user.id).eq('action_type', 'clic_wa');
                     this.stats = { views: v || 0, clicks: c || 0 };
                 },
+
                 async addProd() {
                     this.up = true;
                     try {
                         let urls = [];
                         for (let f of this.files) {
                             const name = `${Date.now()}-${f.name}`;
-                            const { data } = await supabase.storage.from('produits-photos').upload(`${this.user.id}/${name}`, f);
-                            const { data: { publicUrl } } = supabase.storage.from('produits-photos').getPublicUrl(`${this.user.id}/${name}`);
+                            await this.sb.storage.from('produits-photos').upload(`${this.user.id}/${name}`, f);
+                            const { data: { publicUrl } } = this.sb.storage.from('produits-photos').getPublicUrl(`${this.user.id}/${name}`);
                             urls.push(publicUrl);
                         }
-                        await supabase.from('produits').insert([{ boutique_id: this.user.id, nom: this.form.nom, description: this.form.desc, prix: this.form.prix, tailles: this.form.sizes.split(','), images: urls }]);
+                        await this.sb.from('produits').insert([{ boutique_id: this.user.id, nom: this.form.nom, description: this.form.desc, prix: this.form.prix, images: urls, tailles: [] }]);
                         this.showAdd = false; this.fetch();
                     } catch (e) { alert(e.message); }
                     this.up = false;
                 },
-                async togglePin(p) { await supabase.from('produits').update({ is_pinned: !p.is_pinned }).eq('id', p.id); this.fetch(); },
-                async delProd(id) { if(confirm('Supprimer ?')) { await supabase.from('produits').delete().eq('id', id); this.fetch(); } },
-                async logout() { await supabase.auth.signOut(); window.location.href = "login.html"; },
-                copyLink() { navigator.clipboard.writeText(this.shopLink); alert('Lien copié !'); }
+
+                async delProd(id) {
+                    if(confirm('Supprimer ?')) { await this.sb.from('produits').delete().eq('id', id); this.fetch(); }
+                },
+
+                async logout() {
+                    await this.sb.auth.signOut();
+                    window.location.href = "login.html";
+                }
             }
         }
     </script>
